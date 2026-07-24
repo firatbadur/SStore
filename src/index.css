@@ -801,6 +801,29 @@ input[type="range"] {
   font-weight: 600;
 }
 
+/* ─── Editör çalışma alanı: tuval + öğe paneli yan yana ─── */
+.oe-workspace {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+.oe-stage {
+  flex: 1 1 340px;
+  min-width: 260px;
+}
+.oe-side {
+  flex: 1 1 280px;
+  min-width: 250px;
+  max-width: 340px;
+  align-self: flex-start;
+  position: sticky;
+  top: 76px;
+}
+.oe-side-empty {
+  border-style: dashed;
+}
+
 /* ─── İnteraktif overlay tuvali ─── */
 .oe-root {
   position: absolute;

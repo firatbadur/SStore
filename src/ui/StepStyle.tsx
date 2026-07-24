@@ -381,10 +381,6 @@ export function StepStyle({
             </div>
           </div>
 
-          {/* Seçili öğe özellikleri */}
-          {!isFG && selected && (
-            <OverlayProps overlay={selected} onPatch={patchOverlay} onDelete={deleteOverlay} onFront={() => moveZ(1)} onBack={() => moveZ(-1)} />
-          )}
         </div>
 
         {/* Sağ: canlı editör / önizleme */}
@@ -427,14 +423,33 @@ export function StepStyle({
             </div>
           )}
 
-          <div className="preview-frame" style={{ "--ar": `${dev.designW} / ${dev.designH}`, maxWidth: isFG ? "100%" : 420, margin: "0 auto" } as CSSProperties}>
-            {isFG ? (
-              <SlidePreview designW={dev.designW} designH={dev.designH}>
-                <FeatureGraphicView appName={APP_NAME} tagline={APP_TAGLINE} shot={fgShot} config={config} />
-              </SlidePreview>
-            ) : previewSlide ? (
-              <OverlayEditor slide={previewSlide} device={pdev} config={config} selectedId={selId} onSelect={setSelId} onChange={setOverlays} />
-            ) : null}
+          <div className="oe-workspace">
+            <div className="oe-stage" style={{ maxWidth: isFG ? "100%" : 420 }}>
+              <div className="preview-frame" style={{ "--ar": `${dev.designW} / ${dev.designH}` } as CSSProperties}>
+                {isFG ? (
+                  <SlidePreview designW={dev.designW} designH={dev.designH}>
+                    <FeatureGraphicView appName={APP_NAME} tagline={APP_TAGLINE} shot={fgShot} config={config} />
+                  </SlidePreview>
+                ) : previewSlide ? (
+                  <OverlayEditor slide={previewSlide} device={pdev} config={config} selectedId={selId} onSelect={setSelId} onChange={setOverlays} />
+                ) : null}
+              </div>
+            </div>
+
+            {!isFG && (
+              <div className="oe-side">
+                {selected ? (
+                  <OverlayProps overlay={selected} onPatch={patchOverlay} onDelete={deleteOverlay} onFront={() => moveZ(1)} onBack={() => moveZ(-1)} />
+                ) : (
+                  <div className="panel oe-side-empty">
+                    <div className="panel-title">Öğe seçili değil</div>
+                    <div className="panel-sub" style={{ marginBottom: 0 }}>
+                      Tuvaldeki bir öğeye tıkla ya da yukarıdan “＋ Etiket / Kart / Görsel” ekle. Seçili öğenin metni, boyutu ve döndürmesi burada görünür.
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
