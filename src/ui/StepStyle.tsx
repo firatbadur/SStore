@@ -218,7 +218,7 @@ export function StepStyle({
         </p>
       </div>
 
-      <div className="split">
+      <div className="split3">
         {/* Sol: kontroller */}
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <div className="panel">
@@ -383,8 +383,8 @@ export function StepStyle({
 
         </div>
 
-        {/* Sağ: canlı editör / önizleme */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        {/* Orta: sayfa seçimi · ilerleme · tuval */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 14, minWidth: 0 }}>
           <div className="actionbar" style={{ marginBottom: 0 }}>
             {!isFG && (
               <select value={previewSlide?.id} onChange={(e) => setPreviewIdx(enabled.findIndex((s) => s.id === e.target.value))} style={{ maxWidth: 200 }}>
@@ -423,34 +423,36 @@ export function StepStyle({
             </div>
           )}
 
-          <div className="oe-workspace">
-            <div className="oe-stage" style={{ maxWidth: isFG ? "100%" : 420 }}>
-              <div className="preview-frame" style={{ "--ar": `${dev.designW} / ${dev.designH}` } as CSSProperties}>
-                {isFG ? (
-                  <SlidePreview designW={dev.designW} designH={dev.designH}>
-                    <FeatureGraphicView appName={APP_NAME} tagline={APP_TAGLINE} shot={fgShot} config={config} />
-                  </SlidePreview>
-                ) : previewSlide ? (
-                  <OverlayEditor slide={previewSlide} device={pdev} config={config} selectedId={selId} onSelect={setSelId} onChange={setOverlays} />
-                ) : null}
+          <div className="preview-frame" style={{ "--ar": `${dev.designW} / ${dev.designH}`, maxWidth: isFG ? "100%" : 420, margin: "0 auto" } as CSSProperties}>
+            {isFG ? (
+              <SlidePreview designW={dev.designW} designH={dev.designH}>
+                <FeatureGraphicView appName={APP_NAME} tagline={APP_TAGLINE} shot={fgShot} config={config} />
+              </SlidePreview>
+            ) : previewSlide ? (
+              <OverlayEditor slide={previewSlide} device={pdev} config={config} selectedId={selId} onSelect={setSelId} onChange={setOverlays} />
+            ) : null}
+          </div>
+        </div>
+
+        {/* Sağ: öğe seçimi & düzenleme menüsü */}
+        <div className="oe-elpanel">
+          {isFG ? (
+            <div className="panel oe-side-empty">
+              <div className="panel-title">Öğe düzenleme</div>
+              <div className="panel-sub" style={{ marginBottom: 0 }}>
+                Feature Graphic için serbest öğe yok. iPhone ya da Android seçince etiket, kart ve görsel ekleyebilirsin.
               </div>
             </div>
-
-            {!isFG && (
-              <div className="oe-side">
-                {selected ? (
-                  <OverlayProps overlay={selected} onPatch={patchOverlay} onDelete={deleteOverlay} onFront={() => moveZ(1)} onBack={() => moveZ(-1)} />
-                ) : (
-                  <div className="panel oe-side-empty">
-                    <div className="panel-title">Öğe seçili değil</div>
-                    <div className="panel-sub" style={{ marginBottom: 0 }}>
-                      Tuvaldeki bir öğeye tıkla ya da yukarıdan “＋ Etiket / Kart / Görsel” ekle. Seçili öğenin metni, boyutu ve döndürmesi burada görünür.
-                    </div>
-                  </div>
-                )}
+          ) : selected ? (
+            <OverlayProps overlay={selected} onPatch={patchOverlay} onDelete={deleteOverlay} onFront={() => moveZ(1)} onBack={() => moveZ(-1)} />
+          ) : (
+            <div className="panel oe-side-empty">
+              <div className="panel-title">Öğe seçili değil</div>
+              <div className="panel-sub" style={{ marginBottom: 0 }}>
+                Tuvaldeki bir öğeye tıkla ya da ortadaki “＋ Etiket / Kart / Görsel” ile ekle. Seçili öğenin metni, boyutu, döndürmesi ve sırası burada.
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
 

@@ -801,22 +801,27 @@ input[type="range"] {
   font-weight: 600;
 }
 
-/* ─── Editör çalışma alanı: tuval + öğe paneli yan yana ─── */
-.oe-workspace {
-  display: flex;
-  gap: 16px;
-  align-items: flex-start;
-  flex-wrap: wrap;
+/* ─── Üç sütunlu stil adımı: kontroller · tuval · öğe menüsü ─── */
+.split3 {
+  display: grid;
+  grid-template-columns: 336px minmax(0, 1fr) 320px;
+  gap: 20px;
+  align-items: start;
 }
-.oe-stage {
-  flex: 1 1 340px;
-  min-width: 260px;
+@media (max-width: 1240px) {
+  .split3 {
+    grid-template-columns: 300px minmax(0, 1fr);
+  }
+  .split3 > .oe-elpanel {
+    grid-column: 1 / -1;
+  }
 }
-.oe-side {
-  flex: 1 1 280px;
-  min-width: 250px;
-  max-width: 340px;
-  align-self: flex-start;
+@media (max-width: 860px) {
+  .split3 {
+    grid-template-columns: 1fr;
+  }
+}
+.oe-elpanel {
   position: sticky;
   top: 76px;
 }
