@@ -6,6 +6,7 @@ import { APP_NAME, APP_TAGLINE } from "../studio/presets";
 import { FeatureGraphicView } from "../studio/slides";
 import { SlidePreview } from "./SlidePreview";
 import { OverlayEditor, newCard, newImage, newPill, newText, readImageFile } from "./OverlayEditor";
+import { ScreenStrip } from "./ScreenStrip";
 import { THEMES, FONTS, ACCENTS } from "../studio/theme";
 import { DEVICES } from "../studio/devices";
 
@@ -181,6 +182,7 @@ function OverlayProps({
 }
 
 export function StepStyle({
+  projectName,
   config,
   setConfig,
   slides,
@@ -188,6 +190,7 @@ export function StepStyle({
   onBack,
   onGenerate,
 }: {
+  projectName: string;
   config: StyleConfig;
   setConfig: (c: StyleConfig) => void;
   slides: BuiltinSlide[];
@@ -197,10 +200,10 @@ export function StepStyle({
 }) {
   const set = (p: Partial<StyleConfig>) => setConfig({ ...config, ...p });
   const setBg = (p: Partial<StyleConfig["background"]>) => set({ background: { ...config.background, ...p } });
-  const enabled = slides.filter((s) => s.enabled);
+  const enabledCount = slides.filter((s) => s.enabled).length;
 
-  const [previewIdx, setPreviewIdx] = useState(0);
-  const previewSlide = enabled[Math.min(previewIdx, enabled.length - 1)] ?? enabled[0];
+  const [activeSlideId, setActiveSlideId] = useState<string | null>(null);
+  const previewSlide = slides.find((s) => s.id === activeSlideId) ?? slides.find((s) => s.enabled) ?? slides[0] ?? null;
 
   const previewDevices = config.devices.length ? config.devices : (["iphone"] as DeviceId[]);
   const [previewDevice, setPreviewDevice] = useState<DeviceId>(previewDevices[0]);
@@ -270,16 +273,18 @@ export function StepStyle({
     if (ovFileRef.current) ovFileRef.current.value = "";
   };
 
-  const fgShot = enabled.find((s) => s.shot)?.shot ?? "";
+  const fgShot = slides.find((s) => s.enabled && s.shot)?.shot ?? slides.find((s) => s.shot)?.shot ?? "";
 
   return (
     <>
       <div className="page-head">
-        <h1>2 · Mağaza görselini tasarla</h1>
+        <h1>Tasarım · {projectName}</h1>
         <p>
-          Tema, arka plan, font, ekran görüntüsü konumu ve yüzen öğeler burada. Sağdaki tuvale görsel bırakabilir; etiket/kart ekleyip sürükleyerek yerleştirebilirsin.
+          Ekran görüntülerini şeritten yönet, birini seçip tasarla. Tema, arka plan, font, konum ve yüzen öğeler solda; sayfa metni ve seçili öğe sağda.
         </p>
       </div>
+
+      <ScreenStrip slides={slides} setSlides={setSlides} config={config} activeId={previewSlide?.id ?? null} setActiveId={setActiveSlideId} />
 
       <div className="split3">
         {/* Sol: kontroller */}
@@ -449,15 +454,7 @@ export function StepStyle({
         {/* Orta: sayfa seçimi · ilerleme · tuval */}
         <div style={{ display: "flex", flexDirection: "column", gap: 14, minWidth: 0 }}>
           <div className="actionbar" style={{ marginBottom: 0 }}>
-            {!isFG && (
-              <select value={previewSlide?.id} onChange={(e) => setPreviewIdx(enabled.findIndex((s) => s.id === e.target.value))} style={{ maxWidth: 200 }}>
-                {enabled.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
-            )}
+            {!isFG && previewSlide && <span className="pill-note">{previewSlide.name}</span>}
             <div className="seg">
               {previewDevices.map((d) => (
                 <button key={d} className={pdev === d ? "on" : ""} onClick={() => setPreviewDevice(d)}>
@@ -467,9 +464,9 @@ export function StepStyle({
             </div>
             <div className="grow" />
             <button className="btn btn-ghost" onClick={onBack}>
-              ← Geri
+              ← Projeler
             </button>
-            <button className="btn btn-primary btn-lg" disabled={config.devices.length === 0} onClick={onGenerate}>
+            <button className="btn btn-primary btn-lg" disabled={config.devices.length === 0 || enabledCount === 0} onClick={onGenerate}>
               Görselleri Üret →
             </button>
           </div>
@@ -487,15 +484,23 @@ export function StepStyle({
             </div>
           )}
 
-          <div className="preview-frame" style={{ "--ar": `${dev.designW} / ${dev.designH}`, maxWidth: isFG ? "100%" : 420, margin: "0 auto" } as CSSProperties}>
-            {isFG ? (
-              <SlidePreview designW={dev.designW} designH={dev.designH}>
-                <FeatureGraphicView appName={APP_NAME} tagline={APP_TAGLINE} shot={fgShot} config={config} />
-              </SlidePreview>
-            ) : previewSlide ? (
-              <OverlayEditor slide={previewSlide} device={pdev} config={config} selectedId={selId} onSelect={setSelId} onChange={setOverlays} />
-            ) : null}
-          </div>
+          {!isFG && !previewSlide ? (
+            <div className="oe-empty">
+              <div style={{ fontSize: 34 }}>🖼️</div>
+              <div style={{ fontWeight: 700 }}>Bu projede henüz ekran görüntüsü yok</div>
+              <div className="oe-hint">Yukarıdaki “＋ Ekran ekle” ile yükle.</div>
+            </div>
+          ) : (
+            <div className="preview-frame" style={{ "--ar": `${dev.designW} / ${dev.designH}`, maxWidth: isFG ? "100%" : 420, margin: "0 auto" } as CSSProperties}>
+              {isFG ? (
+                <SlidePreview designW={dev.designW} designH={dev.designH}>
+                  <FeatureGraphicView appName={APP_NAME} tagline={APP_TAGLINE} shot={fgShot} config={config} />
+                </SlidePreview>
+              ) : previewSlide ? (
+                <OverlayEditor slide={previewSlide} device={pdev} config={config} selectedId={selId} onSelect={setSelId} onChange={setOverlays} />
+              ) : null}
+            </div>
+          )}
         </div>
 
         {/* Sağ: öğe seçimi & düzenleme menüsü */}

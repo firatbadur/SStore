@@ -801,6 +801,201 @@ input[type="range"] {
   font-weight: 600;
 }
 
+/* ─── Proje başlatıcı ─── */
+.proj-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 18px;
+}
+.proj-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.15s, transform 0.15s;
+}
+.proj-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+.proj-thumb {
+  height: 210px;
+  overflow: hidden;
+  cursor: pointer;
+  background: #f1f3f6;
+  border-bottom: 1px solid var(--line-2);
+}
+.proj-thumb-empty {
+  height: 100%;
+  display: grid;
+  place-items: center;
+  color: var(--ink-3);
+  font-weight: 600;
+}
+.proj-meta {
+  padding: 12px 14px 14px;
+}
+.proj-name {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.proj-sub {
+  color: var(--ink-3);
+  font-size: 12px;
+  margin-top: 2px;
+}
+.proj-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+}
+.proj-new {
+  border: 2px dashed var(--line);
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 300px;
+  padding: 20px;
+  text-align: center;
+  cursor: pointer;
+  color: var(--ink-2);
+  transition: all 0.15s;
+}
+.proj-new:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.proj-new .plus {
+  font-size: 34px;
+  line-height: 1;
+}
+.proj-new .t {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 15px;
+}
+.proj-new .s {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+/* ─── Ekran şeridi (tasarım sayfası) ─── */
+.strip {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 12px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 20px;
+}
+.strip-item {
+  flex: 0 0 auto;
+  width: 128px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
+  transition: border-color 0.15s, box-shadow 0.15s, opacity 0.15s;
+}
+.strip-item.active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+.strip-item.off {
+  opacity: 0.5;
+}
+.strip-thumb {
+  position: relative;
+  height: 168px;
+  overflow: hidden;
+  cursor: pointer;
+  background: #f1f3f6;
+  border-bottom: 1px solid var(--line-2);
+}
+.strip-idx {
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(11, 16, 26, 0.6);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+}
+.strip-bar {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 6px;
+}
+.iconbtn.xs {
+  width: 23px;
+  height: 23px;
+  font-size: 12px;
+  border-radius: 6px;
+}
+.iconbtn.ok {
+  color: var(--ok);
+  border-color: #bfe3d3;
+  background: #f0faf5;
+}
+.strip-add {
+  flex: 0 0 auto;
+  width: 128px;
+  border: 2px dashed var(--line);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  color: var(--ink-2);
+  font-weight: 600;
+  font-size: 12.5px;
+  transition: all 0.15s;
+}
+.strip-add:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+/* ─── Boş tuval durumu ─── */
+.oe-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+  min-height: 360px;
+  border: 2px dashed var(--line);
+  border-radius: 16px;
+  color: var(--ink-2);
+}
+
 /* ─── Üç sütunlu stil adımı: kontroller · tuval · öğe menüsü ─── */
 .split3 {
   display: grid;

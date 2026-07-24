@@ -2,15 +2,18 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import type { DeviceId, GenResult, StyleConfig } from "./studio/types";
 import { BUILTIN_SLIDES, DEFAULT_CONFIG, APP_NAME, APP_TAGLINE, type BuiltinSlide } from "./studio/presets";
+import type { Project } from "./studio/projects";
+import { loadProjects, saveProjects, newProject, duplicateProject, slideFromShot } from "./studio/projects";
 import { DEVICES } from "./studio/devices";
 import { SlideView, FeatureGraphicView } from "./studio/slides";
 import { preloadAll } from "./studio/assets";
 import { captureNode, downscale, dataUrlToBlob, writeFile, pickDirectory, fsSupported } from "./studio/render";
-import { StepScreens } from "./ui/StepScreens";
+import { readImageFile } from "./ui/OverlayEditor";
+import { ProjectsHome } from "./ui/ProjectsHome";
 import { StepStyle } from "./ui/StepStyle";
 import { Gallery } from "./ui/Gallery";
 
-type Phase = "screens" | "style" | "generating" | "result";
+type Phase = "projects" | "design" | "generating" | "result";
 
 interface StageItem {
   key: string;
@@ -58,9 +61,10 @@ function buildItems(slides: BuiltinSlide[], config: StyleConfig): StageItem[] {
 }
 
 export default function App() {
-  const [phase, setPhase] = useState<Phase>("screens");
-  const [slides, setSlides] = useState<BuiltinSlide[]>(() => BUILTIN_SLIDES.map((s) => ({ ...s })));
-  const [config, setConfig] = useState<StyleConfig>(DEFAULT_CONFIG);
+  const [phase, setPhase] = useState<Phase>("projects");
+  const [projects, setProjects] = useState<Project[]>(() => loadProjects());
+  const [activeId, setActiveId] = useState<string | null>(null);
+
   const [results, setResults] = useState<GenResult[]>([]);
   const [progress, setProgress] = useState({ done: 0, total: 0 });
   const [regeneratingKey, setRegeneratingKey] = useState<string | null>(null);
@@ -69,14 +73,78 @@ export default function App() {
   const [pending, setPending] = useState<"all" | string[] | null>(null);
 
   const stageRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const newFileRef = useRef<HTMLInputElement>(null);
+  const pendingName = useRef<string>("Yeni proje");
+
+  const active = projects.find((p) => p.id === activeId) ?? null;
+  const slides = active?.slides ?? [];
+  const config = active?.config ?? DEFAULT_CONFIG;
+
   const items = useMemo(() => buildItems(slides, config), [slides, config]);
   const stageMounted = phase === "generating" || phase === "result";
+
+  // Projeleri localStorage'a yaz (debounce — sürükleme sırasında spam olmasın)
+  useEffect(() => {
+    const t = setTimeout(() => saveProjects(projects), 400);
+    return () => clearTimeout(t);
+  }, [projects]);
 
   // Gömülü görselleri baştan data-URI'ye çevir (export güvenilirliği)
   useEffect(() => {
     preloadAll(["/mockup.png", ...BUILTIN_SLIDES.map((s) => s.shot).filter(Boolean)]).catch(() => {});
   }, []);
 
+  /* ─── Proje güncelleme (aktif projenin slides/config'i) ─── */
+  const updateProject = useCallback((id: string, patch: Partial<Project>) => {
+    setProjects((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch, updatedAt: Date.now() } : p)));
+  }, []);
+  const setSlides = useCallback((next: BuiltinSlide[]) => { if (activeId) updateProject(activeId, { slides: next }); }, [activeId, updateProject]);
+  const setConfig = useCallback((next: StyleConfig) => { if (activeId) updateProject(activeId, { config: next }); }, [activeId, updateProject]);
+
+  /* ─── Proje yaşam döngüsü ─── */
+  const openProject = (id: string) => {
+    setActiveId(id);
+    setResults([]);
+    setPhase("design");
+  };
+  const startNewProject = () => {
+    const name = prompt("Proje adı", "Yeni proje");
+    if (name === null) return; // vazgeçti
+    pendingName.current = name.trim() || "Yeni proje";
+    newFileRef.current?.click();
+  };
+  const onNewFiles = async (files: FileList | null) => {
+    const slidesNew: BuiltinSlide[] = [];
+    if (files) for (const f of Array.from(files)) slidesNew.push(slideFromShot(await readImageFile(f), f.name));
+    const proj = newProject(pendingName.current, slidesNew);
+    setProjects((prev) => [proj, ...prev]);
+    setActiveId(proj.id);
+    setResults([]);
+    setPhase("design");
+    if (newFileRef.current) newFileRef.current.value = "";
+  };
+  const renameProject = (id: string) => {
+    const p = projects.find((x) => x.id === id);
+    if (!p) return;
+    const name = prompt("Yeni ad", p.name);
+    if (name !== null && name.trim()) updateProject(id, { name: name.trim() });
+  };
+  const duplicate = (id: string) => {
+    const p = projects.find((x) => x.id === id);
+    if (!p) return;
+    setProjects((prev) => [duplicateProject(p), ...prev]);
+  };
+  const removeProject = (id: string) => {
+    const p = projects.find((x) => x.id === id);
+    if (!p || !confirm(`"${p.name}" silinsin mi? Bu geri alınamaz.`)) return;
+    setProjects((prev) => prev.filter((x) => x.id !== id));
+    if (activeId === id) {
+      setActiveId(null);
+      setPhase("projects");
+    }
+  };
+
+  /* ─── Üretim ─── */
   const captureItems = useCallback(async (targets: StageItem[]): Promise<GenResult[]> => {
     const done: GenResult[] = [];
     for (let i = 0; i < targets.length; i++) {
@@ -90,7 +158,6 @@ export default function App() {
     return done;
   }, []);
 
-  // Üretim akışı — stage mount olup boyandıktan sonra çalışır
   useEffect(() => {
     if (!pending) return;
     let cancelled = false;
@@ -131,12 +198,10 @@ export default function App() {
     setProgress({ done: 0, total: items.length });
     setPending("all");
   };
-
   const regenerateOne = (key: string) => {
     setRegeneratingKey(key);
     setPending([key]);
   };
-
   const regenerateAll = () => {
     setRegeneratingKey("__all__");
     setPending(items.map((it) => it.key));
@@ -150,7 +215,6 @@ export default function App() {
     const h = await pickDirectory();
     if (h) setDirHandle(h);
   };
-
   const saveAll = async () => {
     if (!dirHandle) return;
     setSavingAll(true);
@@ -166,20 +230,17 @@ export default function App() {
     }
   };
 
-  const goStep = (p: Phase) => setPhase(p);
   const pct = progress.total ? Math.round((progress.done / progress.total) * 100) : 0;
 
   const stepState = (target: Phase): string => {
-    const order: Phase[] = ["screens", "style", "result"];
-    const cur = phase === "generating" ? "result" : phase;
+    const order: Phase[] = ["projects", "design", "result"];
+    const cur = phase === "generating" ? "design" : phase;
     const ci = order.indexOf(cur);
     const ti = order.indexOf(target);
     if (cur === target) return "active";
     if (ti < ci) return "done";
     return "";
   };
-
-  const hasEnabled = slides.some((s) => s.enabled);
 
   return (
     <div className="app">
@@ -191,24 +252,44 @@ export default function App() {
         </div>
         <div className="topbar-spacer" />
         <nav className="steps">
-          <button className={`step ${stepState("screens")} clickable`} onClick={() => goStep("screens")}>
-            <span className="n">1</span> Ekranlar
+          <button className={`step ${stepState("projects")} clickable`} onClick={() => setPhase("projects")}>
+            <span className="n">1</span> Projeler
           </button>
           <span className="step-sep" />
-          <button className={`step ${stepState("style")} ${hasEnabled ? "clickable" : ""}`} onClick={() => hasEnabled && goStep("style")}>
-            <span className="n">2</span> Stil
+          <button className={`step ${stepState("design")} ${active ? "clickable" : ""}`} onClick={() => active && setPhase("design")}>
+            <span className="n">2</span> Tasarım
           </button>
           <span className="step-sep" />
-          <button className={`step ${stepState("result")} ${results.length ? "clickable" : ""}`} onClick={() => results.length && goStep("result")}>
+          <button className={`step ${stepState("result")} ${results.length ? "clickable" : ""}`} onClick={() => results.length && setPhase("result")}>
             <span className="n">3</span> Görseller
           </button>
         </nav>
       </header>
 
       <main className="main">
-        {phase === "screens" && <StepScreens slides={slides} setSlides={setSlides} config={config} onNext={() => setPhase("style")} />}
+        {phase === "projects" && (
+          <ProjectsHome
+            projects={projects}
+            onOpen={openProject}
+            onNew={startNewProject}
+            onRename={renameProject}
+            onDuplicate={duplicate}
+            onDelete={removeProject}
+          />
+        )}
 
-        {phase === "style" && <StepStyle config={config} setConfig={setConfig} slides={slides} setSlides={setSlides} onBack={() => setPhase("screens")} onGenerate={startGenerateAll} />}
+        {phase === "design" && active && (
+          <StepStyle
+            key={active.id}
+            projectName={active.name}
+            config={config}
+            setConfig={setConfig}
+            slides={slides}
+            setSlides={setSlides}
+            onBack={() => setPhase("projects")}
+            onGenerate={startGenerateAll}
+          />
+        )}
 
         {phase === "generating" && (
           <div className="progress-wrap">
@@ -235,10 +316,13 @@ export default function App() {
             onPickDir={pickDir}
             onSaveAll={saveAll}
             savingAll={savingAll}
-            onBack={() => setPhase("style")}
+            onBack={() => setPhase("design")}
           />
         )}
       </main>
+
+      {/* Yeni proje için ekran görüntüsü seçici */}
+      <input ref={newFileRef} type="file" accept="image/*" multiple hidden onChange={(e) => onNewFiles(e.target.files)} />
 
       {/* Gizli yakalama sahnesi — tam çözünürlükte render, capture buradan */}
       {stageMounted && (
