@@ -4,9 +4,10 @@
    yüzen kartlar, doku, hiza — hepsi config'ten gelir.
    ══════════════════════════════════════════════════════════════════════ */
 import type { CSSProperties, ReactNode, Key } from "react";
-import type { SlideSpec, StyleConfig, DeviceId } from "./types";
-import { surfaceOf, fontStack, type Surface } from "./theme";
+import type { Overlay, SlideSpec, StyleConfig, DeviceId } from "./types";
+import { surfaceOf, fontStack, applyInk, resolveBackground, type Surface } from "./theme";
 import { DEVICES, fitWidth, type Frame } from "./devices";
+import { resolveImg } from "./assets";
 
 export interface FloatSpec {
   kind: "pill" | "card";
@@ -193,7 +194,8 @@ function Caption({
   headline,
   size,
   align,
-  padTop,
+  pad,
+  anchor,
 }: {
   cW: number;
   cH: number;
@@ -203,14 +205,16 @@ function Caption({
   headline: string;
   size: number;
   align: "center" | "left" | "right";
-  padTop: number;
+  pad: number;
+  /** Metin bloğu üstte mi altta mı — ekran görüntüsünün karşısında durur */
+  anchor: "top" | "bottom";
 }) {
   const items = align === "center" ? "center" : align === "right" ? "flex-end" : "flex-start";
   return (
     <div
       style={{
         position: "absolute",
-        top: cH * padTop,
+        ...(anchor === "top" ? { top: cH * pad } : { bottom: cH * pad }),
         left: cW * 0.08,
         right: cW * 0.08,
         display: "flex",
@@ -229,11 +233,11 @@ function Caption({
   );
 }
 
-function Panel({ s, texture, children }: { s: Surface; texture: boolean; children: ReactNode }) {
+function Panel({ s, texture, bgOverride, children }: { s: Surface; texture: boolean; bgOverride?: string | null; children: ReactNode }) {
   return (
-    <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: s.bg }}>
+    <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: bgOverride ?? s.bg }}>
       {texture && <Texture color={s.dots} />}
-      {s.glow && <div style={{ position: "absolute", inset: 0, zIndex: 0, background: s.glow }} />}
+      {!bgOverride && s.glow && <div style={{ position: "absolute", inset: 0, zIndex: 0, background: s.glow }} />}
       <div style={{ position: "relative", zIndex: 2, width: "100%", height: "100%" }}>{children}</div>
     </div>
   );
@@ -251,6 +255,53 @@ function renderFloat(f: FloatSpec, cW: number, s: Surface, key: Key) {
 }
 
 /* ══════════════════════════════════════════════════════════════════════
+   Serbest overlay öğeleri (kullanıcının bıraktığı görsel / etiket / kart)
+   Konum ve boyut % cinsinden → her cihazda ve export'ta tutarlı ölçeklenir.
+   Aynı görsel hem statik render'da hem interaktif editörde kullanılır.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/** Bir overlay'in konumlandırılmış kapsayıcı stili (statik + editör aynı) */
+export function overlayStyle(o: Overlay): CSSProperties {
+  return {
+    position: "absolute",
+    left: `${o.x}%`,
+    top: `${o.y}%`,
+    ...(o.type === "image" ? { width: `${o.w}%` } : {}),
+    transform: `rotate(${o.rot}deg)`,
+    transformOrigin: "center center",
+  };
+}
+
+/** Bir overlay'in iç görseli — konumlandırma yok, sadece görünüm */
+export function OverlayVisual({ o, cW, s }: { o: Overlay; cW: number; s: Surface }) {
+  if (o.type === "image") {
+    return <img src={resolveImg(o.src)} alt="" draggable={false} style={{ display: "block", width: "100%", height: "auto", pointerEvents: "none" }} />;
+  }
+  if (o.type === "card") {
+    return <PopCard cW={cW * o.scale} s={s} icon={o.icon} title={o.title} rows={o.rows} />;
+  }
+  return (
+    <Pill cW={cW * o.scale} s={s} solid={o.solid} icon={o.icon}>
+      {o.text}
+    </Pill>
+  );
+}
+
+/** Statik overlay katmanı (önizleme/export). Tıklamayı engellemez. */
+function OverlayLayer({ overlays, cW, s }: { overlays: Overlay[]; cW: number; s: Surface }) {
+  if (!overlays.length) return null;
+  return (
+    <div style={{ position: "absolute", inset: 0, zIndex: 8, pointerEvents: "none" }}>
+      {overlays.map((o) => (
+        <div key={o.id} style={overlayStyle(o)}>
+          <OverlayVisual o={o} cW={cW} s={s} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════
    Tek slayt görünümü
    ══════════════════════════════════════════════════════════════════════ */
 export function SlideView({ slide, device, config }: { slide: SlideSpec; device: DeviceId; config: StyleConfig }) {
@@ -258,15 +309,26 @@ export function SlideView({ slide, device, config }: { slide: SlideSpec; device:
   const cW = dev.designW;
   const cH = dev.designH;
   const Frame = dev.Frame;
-  const s = surfaceOf(config.theme, slide.tone, config.accent);
+  const bgOverride = resolveBackground(config.background);
+  let s = surfaceOf(config.theme, slide.tone, config.accent);
+  if (bgOverride && config.background.ink !== "auto") s = applyInk(s, config.background.ink);
   const font = fontStack(config.font);
   const floats = (slide as SlideSpec & { floats?: FloatSpec[] }).floats ?? [];
   const showFloats = config.floats && floats.length > 0;
+  const overlays = slide.overlays ?? [];
   const t = config.tilt;
+
+  // ss konumu: "bottom" (varsayılan) → telefon altta, metin üstte; "top" → tersi
+  const shotTop = config.shotAnchor === "top";
+  const capAnchor: "top" | "bottom" = shotTop ? "bottom" : "top";
+  const vpos = (offset: string): CSSProperties => (shotTop ? { top: offset } : { bottom: offset });
+  const fpos = (frac: number): CSSProperties => (shotTop ? { bottom: cH * frac } : { top: cH * frac });
+
+  const overlayLayer = <OverlayLayer overlays={overlays} cW={cW} s={s} />;
 
   if (slide.layout === "finale") {
     return (
-      <Panel s={s} texture={config.texture}>
+      <Panel s={s} texture={config.texture} bgOverride={bgOverride}>
         <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: `0 ${cW * 0.09}px`, textAlign: "center", zIndex: 3 }}>
           <Kicker label={slide.kicker} cW={cW} s={s} />
           <div style={{ height: cH * 0.02 }} />
@@ -288,6 +350,7 @@ export function SlideView({ slide, device, config }: { slide: SlideSpec; device:
           <div style={{ height: cH * 0.05 }} />
           <Rating cW={cW} s={s} text="Kullanıcıların ilk tercihi" />
         </div>
+        {overlayLayer}
       </Panel>
     );
   }
@@ -295,12 +358,13 @@ export function SlideView({ slide, device, config }: { slide: SlideSpec; device:
   if (slide.layout === "card") {
     const pw = fitWidth(cW, cH, dev.ratio, 0.56, 0.68) * 100;
     return (
-      <Panel s={s} texture={config.texture}>
-        <Caption cW={cW} cH={cH} s={s} font={font} kicker={slide.kicker} headline={slide.headline} size={0.08} align={config.align} padTop={0.085} />
-        <Phone Frame={Frame} src={slide.shot} alt={slide.name} widthPct={pw} rotate={t * 0.4} shadow={config.shadow} style={{ left: "50%", bottom: "-11%", transform: `translateX(-50%) rotate(${t * 0.4}deg)` }} />
+      <Panel s={s} texture={config.texture} bgOverride={bgOverride}>
+        <Caption cW={cW} cH={cH} s={s} font={font} kicker={slide.kicker} headline={slide.headline} size={0.08} align={config.align} pad={0.085} anchor={capAnchor} />
+        <Phone Frame={Frame} src={slide.shot} alt={slide.name} widthPct={pw} rotate={t * 0.4} shadow={config.shadow} style={{ left: "50%", ...vpos("-11%"), transform: `translateX(-50%) rotate(${t * 0.4}deg)` }} />
         {showFloats && (
-          <div style={{ position: "absolute", top: cH * 0.4, left: cW * 0.06, zIndex: 6 }}>{renderFloat(floats[0], cW, s, 0)}</div>
+          <div style={{ position: "absolute", ...fpos(0.4), left: cW * 0.06, zIndex: 6 }}>{renderFloat(floats[0], cW, s, 0)}</div>
         )}
+        {overlayLayer}
       </Panel>
     );
   }
@@ -308,14 +372,15 @@ export function SlideView({ slide, device, config }: { slide: SlideSpec; device:
   if (slide.layout === "left") {
     const pw = fitWidth(cW, cH, dev.ratio, 0.66, 0.74) * 100;
     return (
-      <Panel s={s} texture={config.texture}>
-        <Caption cW={cW} cH={cH} s={s} font={font} kicker={slide.kicker} headline={slide.headline} size={0.076} align="left" padTop={0.085} />
-        <Phone Frame={Frame} src={slide.shot} alt={slide.name} widthPct={pw} rotate={t} shadow={config.shadow} style={{ right: "-14%", bottom: "-8%", transform: `rotate(${t}deg)` }} />
+      <Panel s={s} texture={config.texture} bgOverride={bgOverride}>
+        <Caption cW={cW} cH={cH} s={s} font={font} kicker={slide.kicker} headline={slide.headline} size={0.076} align="left" pad={0.085} anchor={capAnchor} />
+        <Phone Frame={Frame} src={slide.shot} alt={slide.name} widthPct={pw} rotate={t} shadow={config.shadow} style={{ right: "-14%", ...vpos("-8%"), transform: `rotate(${t}deg)` }} />
         {showFloats && (
-          <div style={{ position: "absolute", top: cH * 0.33, left: cW * 0.06, display: "flex", flexDirection: "column", gap: cW * 0.02, zIndex: 6 }}>
+          <div style={{ position: "absolute", ...fpos(0.33), left: cW * 0.06, display: "flex", flexDirection: "column", gap: cW * 0.02, zIndex: 6 }}>
             {floats.slice(0, 3).map((f, i) => renderFloat(f, cW, s, i))}
           </div>
         )}
+        {overlayLayer}
       </Panel>
     );
   }
@@ -323,14 +388,15 @@ export function SlideView({ slide, device, config }: { slide: SlideSpec; device:
   if (slide.layout === "right") {
     const pw = fitWidth(cW, cH, dev.ratio, 0.66, 0.74) * 100;
     return (
-      <Panel s={s} texture={config.texture}>
-        <Caption cW={cW} cH={cH} s={s} font={font} kicker={slide.kicker} headline={slide.headline} size={0.076} align="right" padTop={0.085} />
-        <Phone Frame={Frame} src={slide.shot} alt={slide.name} widthPct={pw} rotate={-t} shadow={config.shadow} style={{ left: "-14%", bottom: "-8%", transform: `rotate(${-t}deg)` }} />
+      <Panel s={s} texture={config.texture} bgOverride={bgOverride}>
+        <Caption cW={cW} cH={cH} s={s} font={font} kicker={slide.kicker} headline={slide.headline} size={0.076} align="right" pad={0.085} anchor={capAnchor} />
+        <Phone Frame={Frame} src={slide.shot} alt={slide.name} widthPct={pw} rotate={-t} shadow={config.shadow} style={{ left: "-14%", ...vpos("-8%"), transform: `rotate(${-t}deg)` }} />
         {showFloats && (
-          <div style={{ position: "absolute", top: cH * 0.31, right: cW * 0.05, display: "flex", flexDirection: "column", gap: cW * 0.02, alignItems: "flex-end", zIndex: 6 }}>
+          <div style={{ position: "absolute", ...fpos(0.31), right: cW * 0.05, display: "flex", flexDirection: "column", gap: cW * 0.02, alignItems: "flex-end", zIndex: 6 }}>
             {floats.slice(0, 3).map((f, i) => renderFloat(f, cW, s, i))}
           </div>
         )}
+        {overlayLayer}
       </Panel>
     );
   }
@@ -338,15 +404,16 @@ export function SlideView({ slide, device, config }: { slide: SlideSpec; device:
   // center (varsayılan)
   const pw = fitWidth(cW, cH, dev.ratio, 0.6, 0.74) * 100;
   return (
-    <Panel s={s} texture={config.texture}>
-      <Caption cW={cW} cH={cH} s={s} font={font} kicker={slide.kicker} headline={slide.headline} size={0.084} align={config.align} padTop={0.085} />
-      <Phone Frame={Frame} src={slide.shot} alt={slide.name} widthPct={pw} rotate={t * 0.6} shadow={config.shadow} style={{ left: "50%", bottom: "-9%", transform: `translateX(-50%) rotate(${t * 0.6}deg)` }} />
+    <Panel s={s} texture={config.texture} bgOverride={bgOverride}>
+      <Caption cW={cW} cH={cH} s={s} font={font} kicker={slide.kicker} headline={slide.headline} size={0.084} align={config.align} pad={0.085} anchor={capAnchor} />
+      <Phone Frame={Frame} src={slide.shot} alt={slide.name} widthPct={pw} rotate={t * 0.6} shadow={config.shadow} style={{ left: "50%", ...vpos("-9%"), transform: `translateX(-50%) rotate(${t * 0.6}deg)` }} />
       {showFloats && (
         <>
-          <div style={{ position: "absolute", top: cH * 0.42, left: cW * 0.05, zIndex: 6 }}>{renderFloat(floats[0], cW, s, 0)}</div>
-          {floats[1] && <div style={{ position: "absolute", top: cH * 0.5, right: cW * 0.04, zIndex: 6 }}>{renderFloat(floats[1], cW, s, 1)}</div>}
+          <div style={{ position: "absolute", ...fpos(0.42), left: cW * 0.05, zIndex: 6 }}>{renderFloat(floats[0], cW, s, 0)}</div>
+          {floats[1] && <div style={{ position: "absolute", ...fpos(0.5), right: cW * 0.04, zIndex: 6 }}>{renderFloat(floats[1], cW, s, 1)}</div>}
         </>
       )}
+      {overlayLayer}
     </Panel>
   );
 }
@@ -358,11 +425,13 @@ export function FeatureGraphicView({ appName, tagline, shot, config }: { appName
   const dev = DEVICES["feature-graphic"];
   const cW = dev.designW;
   const cH = dev.designH;
-  const s = surfaceOf(config.theme, "brand", config.accent);
+  const bgOverride = resolveBackground(config.background);
+  let s = surfaceOf(config.theme, "brand", config.accent);
+  if (bgOverride && config.background.ink !== "auto") s = applyInk(s, config.background.ink);
   const font = fontStack(config.font);
   const t = config.tilt || 8;
   return (
-    <Panel s={s} texture={config.texture}>
+    <Panel s={s} texture={config.texture} bgOverride={bgOverride}>
       <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", zIndex: 3 }}>
         <div style={{ paddingLeft: cW * 0.07, width: "58%" }}>
           <Kicker label="Kamu İhaleleri" cW={cW} s={s} />

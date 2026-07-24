@@ -12,7 +12,17 @@ export type LayoutId = "center" | "left" | "right" | "card" | "finale";
 /** Yüzey tonu — tema bunları somut renklere çevirir (ritim için) */
 export type ToneId = "main" | "contrast" | "brand";
 
-export type ThemeId = "editorial" | "midnight" | "brand";
+export type ThemeId =
+  | "editorial"
+  | "midnight"
+  | "brand"
+  | "sunset"
+  | "emerald"
+  | "graphite"
+  | "pearl"
+  | "violet"
+  | "ocean"
+  | "rose";
 export type FontId =
   | "jakarta"
   | "grotesk"
@@ -21,6 +31,65 @@ export type FontId =
   | "bricolage"
   | "archivo"
   | "inter";
+
+/* ─── Serbest konumlu overlay öğeleri (kullanıcı ekler, taşır, boyutlandırır) ─── */
+
+/** Tüm overlay'lerde ortak: konum (% cinsinden, sol-üst köşe) + döndürme */
+interface OverlayBase {
+  id: string;
+  /** Sol köşe — tuval genişliğinin yüzdesi (0–100) */
+  x: number;
+  /** Üst köşe — tuval yüksekliğinin yüzdesi (0–100) */
+  y: number;
+  /** Döndürme (derece) */
+  rot: number;
+}
+
+/** Kullanıcının bıraktığı PNG/SVG görsel */
+export interface OverlayImage extends OverlayBase {
+  type: "image";
+  /** data URL */
+  src: string;
+  /** Genişlik — tuval genişliğinin yüzdesi */
+  w: number;
+}
+
+/** Kullanıcının eklediği yüzen etiket (pill) */
+export interface OverlayPill extends OverlayBase {
+  type: "pill";
+  text: string;
+  icon?: string;
+  /** Boyut çarpanı (1 = varsayılan) */
+  scale: number;
+  /** Dolu (kart benzeri) mı, yarı saydam mı */
+  solid: boolean;
+}
+
+/** Kullanıcının eklediği yüzen kart */
+export interface OverlayCard extends OverlayBase {
+  type: "card";
+  title: string;
+  rows: string[];
+  icon?: string;
+  scale: number;
+}
+
+export type Overlay = OverlayImage | OverlayPill | OverlayCard;
+
+/** Kısmi güncelleme — tüm overlay alanları opsiyonel (tipe özel dahil) */
+export interface OverlayPatch {
+  x?: number;
+  y?: number;
+  rot?: number;
+  w?: number;
+  src?: string;
+  text?: string;
+  icon?: string;
+  scale?: number;
+  solid?: boolean;
+  title?: string;
+  rows?: string[];
+}
 
 /** Kullanıcının seçtiği tek bir ekran görüntüsü → bir slayt */
 export interface SlideSpec {
@@ -36,7 +105,34 @@ export interface SlideSpec {
   tone: ToneId;
   /** Bu slayt üretime dahil mi */
   enabled: boolean;
+  /** Kullanıcının serbest yerleştirdiği görsel/etiket/kart öğeleri */
+  overlays?: Overlay[];
 }
+
+/** Arka plan modu — tema yüzeyini geçersiz kılabilir */
+export type BackgroundMode = "theme" | "solid" | "gradient" | "image";
+
+/** Özel arka plan ayarı ("theme" = temanın kendi zemini) */
+export interface BackgroundConfig {
+  mode: BackgroundMode;
+  /** solid / gradyan başlangıç rengi */
+  color1: string;
+  /** gradyan bitiş rengi */
+  color2: string;
+  /** gradyan açısı (derece) */
+  angle: number;
+  /** yüklenen arka plan görseli (data URL) */
+  image?: string;
+  /** görsel oturması */
+  imageFit: "cover" | "contain";
+  /** görselin üzerine karartma perdesi (0–1) — metin okunaklılığı için */
+  scrim: number;
+  /** metin rengi: auto = temaya bırak, light/dark = zorla */
+  ink: "auto" | "light" | "dark";
+}
+
+/** Ekran görüntüsünün dikey yerleşimi */
+export type ShotAnchor = "bottom" | "top";
 
 /** Üretim stili — "nasıl bir mağaza görseli" sorusunun cevabı */
 export interface StyleConfig {
@@ -54,6 +150,10 @@ export interface StyleConfig {
   texture: boolean;
   /** Başlık hizası */
   align: "center" | "left";
+  /** Ekran görüntüsü üstte mi altta mı; üst etiket karşı tarafa geçer */
+  shotAnchor: ShotAnchor;
+  /** Özel arka plan */
+  background: BackgroundConfig;
   /** Üretilecek cihazlar */
   devices: DeviceId[];
 }

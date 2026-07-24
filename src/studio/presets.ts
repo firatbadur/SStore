@@ -152,5 +152,15 @@ export const DEFAULT_CONFIG: StyleConfig = {
   floats: true,
   texture: true,
   align: "center",
+  shotAnchor: "bottom", // ekran görüntüsü altta, metin üstte
+  background: {
+    mode: "theme", // temanın kendi zemini
+    color1: "#F5F3EE",
+    color2: "#2B6CB0",
+    angle: 158,
+    imageFit: "cover",
+    scrim: 0.28,
+    ink: "auto",
+  },
   devices: ["iphone", "android"],
 };

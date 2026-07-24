@@ -758,3 +758,74 @@ input[type="range"] {
   background: var(--accent-soft);
   color: var(--accent);
 }
+
+/* ─── Renk alanı (arka plan kontrolleri) ─── */
+.colorfield {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.colorfield .swatch {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+}
+.colorfield > span:nth-of-type(1) {
+  flex: 1;
+}
+.colorfield .hex {
+  color: var(--ink-3);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+/* ─── Overlay ekleme araç çubuğu ─── */
+.oe-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+.oe-hint {
+  color: var(--ink-3);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* ─── İnteraktif overlay tuvali ─── */
+.oe-root {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  touch-action: none;
+}
+.oe-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+}
+.oe-item {
+  user-select: none;
+  touch-action: none;
+}
+.oe-item img {
+  -webkit-user-drag: none;
+}
+.oe-handle {
+  border-style: solid;
+  border-color: #fff;
+  border-radius: 50%;
+  box-sizing: border-box;
+  box-shadow: 0 2px 8px rgba(8, 11, 20, 0.45);
+  z-index: 2;
+  touch-action: none;
+}

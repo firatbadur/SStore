@@ -208,7 +208,7 @@ export default function App() {
       <main className="main">
         {phase === "screens" && <StepScreens slides={slides} setSlides={setSlides} config={config} onNext={() => setPhase("style")} />}
 
-        {phase === "style" && <StepStyle config={config} setConfig={setConfig} slides={slides} onBack={() => setPhase("screens")} onGenerate={startGenerateAll} />}
+        {phase === "style" && <StepStyle config={config} setConfig={setConfig} slides={slides} setSlides={setSlides} onBack={() => setPhase("screens")} onGenerate={startGenerateAll} />}
 
         {phase === "generating" && (
           <div className="progress-wrap">

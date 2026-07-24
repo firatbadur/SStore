@@ -1,14 +1,22 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
-import type { DeviceId, StyleConfig } from "../studio/types";
+import type { BackgroundMode, DeviceId, Overlay, OverlayPatch, ShotAnchor, StyleConfig } from "../studio/types";
 import type { BuiltinSlide } from "../studio/presets";
 import { APP_NAME, APP_TAGLINE } from "../studio/presets";
-import { SlideView, FeatureGraphicView } from "../studio/slides";
+import { FeatureGraphicView } from "../studio/slides";
 import { SlidePreview } from "./SlidePreview";
+import { OverlayEditor, newCard, newImage, newPill, readImageFile } from "./OverlayEditor";
 import { THEMES, FONTS, ACCENTS } from "../studio/theme";
 import { DEVICES } from "../studio/devices";
 
 const DEVICE_LIST: DeviceId[] = ["iphone", "android", "feature-graphic"];
+
+const BG_MODES: { id: BackgroundMode; label: string }[] = [
+  { id: "theme", label: "Tema" },
+  { id: "solid", label: "Düz renk" },
+  { id: "gradient", label: "Gradyan" },
+  { id: "image", label: "Görsel" },
+];
 
 function Toggle({ label, sub, on, onChange }: { label: string; sub?: string; on: boolean; onChange: (v: boolean) => void }) {
   return (
@@ -22,20 +30,116 @@ function Toggle({ label, sub, on, onChange }: { label: string; sub?: string; on:
   );
 }
 
+function ColorField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <div className="colorfield">
+      <label className="swatch" style={{ background: value, position: "relative" }} title={label}>
+        <input type="color" value={value} onChange={(e) => onChange(e.target.value)} style={{ opacity: 0, position: "absolute", inset: 0, cursor: "pointer" }} />
+      </label>
+      <span>{label}</span>
+      <span className="hex">{value.toUpperCase()}</span>
+    </div>
+  );
+}
+
+/* ─── Seçili overlay öğesi özellikleri ─── */
+function OverlayProps({
+  overlay,
+  onPatch,
+  onDelete,
+  onFront,
+  onBack,
+}: {
+  overlay: Overlay;
+  onPatch: (p: OverlayPatch) => void;
+  onDelete: () => void;
+  onFront: () => void;
+  onBack: () => void;
+}) {
+  const o = overlay;
+  return (
+    <div className="panel">
+      <div className="panel-title">
+        Öğe · {o.type === "image" ? "Görsel" : o.type === "card" ? "Kart" : "Etiket"}
+      </div>
+      <div className="panel-sub">Tuvalde sürükleyerek taşı, seçiliyken düzenle.</div>
+
+      {o.type === "pill" && (
+        <>
+          <div className="field">
+            <label>Metin</label>
+            <input type="text" value={o.text} onChange={(e) => onPatch({ text: e.target.value })} />
+          </div>
+          <div className="field">
+            <label>İkon <span className="hint">(emoji, opsiyonel)</span></label>
+            <input type="text" value={o.icon ?? ""} onChange={(e) => onPatch({ icon: e.target.value })} />
+          </div>
+          <Toggle label="Dolu (kart görünümü)" on={o.solid} onChange={(v) => onPatch({ solid: v })} />
+        </>
+      )}
+
+      {o.type === "card" && (
+        <>
+          <div className="field">
+            <label>Başlık</label>
+            <input type="text" value={o.title} onChange={(e) => onPatch({ title: e.target.value })} />
+          </div>
+          <div className="field">
+            <label>İkon <span className="hint">(emoji)</span></label>
+            <input type="text" value={o.icon ?? ""} onChange={(e) => onPatch({ icon: e.target.value })} />
+          </div>
+          <div className="field">
+            <label>Satırlar <span className="hint">— her satır bir madde</span></label>
+            <textarea rows={3} value={o.rows.join("\n")} onChange={(e) => onPatch({ rows: e.target.value.split("\n") })} />
+          </div>
+        </>
+      )}
+
+      <div className="field">
+        <label>
+          Boyut · <b>{o.type === "image" ? `${Math.round(o.w)}%` : `${o.scale.toFixed(2)}×`}</b>
+        </label>
+        {o.type === "image" ? (
+          <input type="range" min={5} max={120} step={1} value={o.w} onChange={(e) => onPatch({ w: Number(e.target.value) })} />
+        ) : (
+          <input type="range" min={0.5} max={2.5} step={0.05} value={o.scale} onChange={(e) => onPatch({ scale: Number(e.target.value) })} />
+        )}
+      </div>
+
+      <div className="field">
+        <label>
+          Döndürme · <b>{o.rot}°</b>
+        </label>
+        <input type="range" min={-45} max={45} step={1} value={o.rot} onChange={(e) => onPatch({ rot: Number(e.target.value) })} />
+      </div>
+
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <button className="btn btn-sm" onClick={onFront}>↑ Öne</button>
+        <button className="btn btn-sm" onClick={onBack}>↓ Arkaya</button>
+        <div className="grow" style={{ flex: 1 }} />
+        <button className="btn btn-sm btn-danger" onClick={onDelete}>Sil</button>
+      </div>
+    </div>
+  );
+}
+
 export function StepStyle({
   config,
   setConfig,
   slides,
+  setSlides,
   onBack,
   onGenerate,
 }: {
   config: StyleConfig;
   setConfig: (c: StyleConfig) => void;
   slides: BuiltinSlide[];
+  setSlides: (s: BuiltinSlide[]) => void;
   onBack: () => void;
   onGenerate: () => void;
 }) {
   const set = (p: Partial<StyleConfig>) => setConfig({ ...config, ...p });
+  const setBg = (p: Partial<StyleConfig["background"]>) => set({ background: { ...config.background, ...p } });
   const enabled = slides.filter((s) => s.enabled);
 
   const [previewIdx, setPreviewIdx] = useState(0);
@@ -45,11 +149,62 @@ export function StepStyle({
   const [previewDevice, setPreviewDevice] = useState<DeviceId>(previewDevices[0]);
   const pdev = config.devices.includes(previewDevice) ? previewDevice : previewDevices[0];
   const dev = DEVICES[pdev];
+  const isFG = pdev === "feature-graphic";
+
+  const [selId, setSelId] = useState<string | null>(null);
+  // Slayt değişince seçim sıfırlansın
+  useEffect(() => setSelId(null), [previewSlide?.id]);
+
+  const bgFileRef = useRef<HTMLInputElement>(null);
+  const ovFileRef = useRef<HTMLInputElement>(null);
 
   const toggleDevice = (d: DeviceId) => {
     const has = config.devices.includes(d);
     const next = has ? config.devices.filter((x) => x !== d) : [...config.devices, d];
     set({ devices: next });
+  };
+
+  /* ─── Overlay yönetimi (seçili slayt üzerinde) ─── */
+  const overlays = previewSlide?.overlays ?? [];
+  const selected = overlays.find((o) => o.id === selId) ?? null;
+
+  const setOverlays = (next: Overlay[]) => {
+    if (!previewSlide) return;
+    setSlides(slides.map((s) => (s.id === previewSlide.id ? { ...s, overlays: next } : s)));
+  };
+  const addOverlay = (o: Overlay) => {
+    setOverlays([...overlays, o]);
+    setSelId(o.id);
+  };
+  const patchOverlay = (p: OverlayPatch) => {
+    if (!selId) return;
+    setOverlays(overlays.map((o) => (o.id === selId ? ({ ...o, ...p } as Overlay) : o)));
+  };
+  const deleteOverlay = () => {
+    if (!selId) return;
+    setOverlays(overlays.filter((o) => o.id !== selId));
+    setSelId(null);
+  };
+  const moveZ = (dir: 1 | -1) => {
+    if (!selId) return;
+    const i = overlays.findIndex((o) => o.id === selId);
+    const j = i + dir;
+    if (i < 0 || j < 0 || j >= overlays.length) return;
+    const next = [...overlays];
+    [next[i], next[j]] = [next[j], next[i]];
+    setOverlays(next);
+  };
+
+  const onBgFile = async (files: FileList | null) => {
+    if (!files || !files[0]) return;
+    const url = await readImageFile(files[0]);
+    setBg({ image: url, mode: "image" });
+    if (bgFileRef.current) bgFileRef.current.value = "";
+  };
+  const onOverlayFile = async (files: FileList | null) => {
+    if (!files) return;
+    for (const f of Array.from(files)) if (f.type.startsWith("image/")) addOverlay(newImage(await readImageFile(f)));
+    if (ovFileRef.current) ovFileRef.current.value = "";
   };
 
   const fgShot = enabled.find((s) => s.shot)?.shot ?? "";
@@ -58,7 +213,9 @@ export function StepStyle({
     <>
       <div className="page-head">
         <h1>2 · Mağaza görselini tasarla</h1>
-        <p>Nasıl bir görsel istediğini burada belirle — tema, font, vurgu rengi, telefon duruşu ve yüzen öğeler. Sağdaki önizleme anında güncellenir.</p>
+        <p>
+          Tema, arka plan, font, ekran görüntüsü konumu ve yüzen öğeler burada. Sağdaki tuvale görsel bırakabilir; etiket/kart ekleyip sürükleyerek yerleştirebilirsin.
+        </p>
       </div>
 
       <div className="split">
@@ -111,9 +268,96 @@ export function StepStyle({
             </div>
           </div>
 
+          {/* Arka plan */}
+          <div className="panel">
+            <div className="panel-title">Arka plan</div>
+            <div className="panel-sub">Temanın zemini yerine kendi rengin, gradyanın veya görselin</div>
+            <div className="seg" style={{ display: "flex", flexWrap: "wrap" }}>
+              {BG_MODES.map((m) => (
+                <button key={m.id} className={config.background.mode === m.id ? "on" : ""} onClick={() => setBg({ mode: m.id })}>
+                  {m.label}
+                </button>
+              ))}
+            </div>
+
+            {config.background.mode === "solid" && (
+              <div className="field" style={{ marginTop: 14 }}>
+                <ColorField label="Zemin rengi" value={config.background.color1} onChange={(v) => setBg({ color1: v })} />
+              </div>
+            )}
+
+            {config.background.mode === "gradient" && (
+              <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 10 }}>
+                <ColorField label="Başlangıç" value={config.background.color1} onChange={(v) => setBg({ color1: v })} />
+                <ColorField label="Bitiş" value={config.background.color2} onChange={(v) => setBg({ color2: v })} />
+                <div className="field" style={{ margin: 0 }}>
+                  <label>
+                    Açı · <b>{config.background.angle}°</b>
+                  </label>
+                  <input type="range" min={0} max={360} step={1} value={config.background.angle} onChange={(e) => setBg({ angle: Number(e.target.value) })} />
+                </div>
+              </div>
+            )}
+
+            {config.background.mode === "image" && (
+              <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 12 }}>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <button className="btn btn-sm" onClick={() => bgFileRef.current?.click()}>
+                    {config.background.image ? "Görseli değiştir" : "Görsel yükle"}
+                  </button>
+                  {config.background.image && (
+                    <button className="btn btn-sm btn-ghost" onClick={() => setBg({ image: undefined })}>
+                      Kaldır
+                    </button>
+                  )}
+                </div>
+                <div className="field" style={{ margin: 0 }}>
+                  <label>Oturma</label>
+                  <div className="seg">
+                    <button className={config.background.imageFit === "cover" ? "on" : ""} onClick={() => setBg({ imageFit: "cover" })}>
+                      Doldur
+                    </button>
+                    <button className={config.background.imageFit === "contain" ? "on" : ""} onClick={() => setBg({ imageFit: "contain" })}>
+                      Sığdır
+                    </button>
+                  </div>
+                </div>
+                <div className="field" style={{ margin: 0 }}>
+                  <label>
+                    Karartma perdesi · <b>{Math.round(config.background.scrim * 100)}%</b> <span className="hint">(metin okunaklılığı)</span>
+                  </label>
+                  <input type="range" min={0} max={0.8} step={0.02} value={config.background.scrim} onChange={(e) => setBg({ scrim: Number(e.target.value) })} />
+                </div>
+              </div>
+            )}
+
+            {config.background.mode !== "theme" && (
+              <div className="field" style={{ marginTop: 14, marginBottom: 0 }}>
+                <label>Metin rengi</label>
+                <div className="seg">
+                  {(["auto", "dark", "light"] as const).map((k) => (
+                    <button key={k} className={config.background.ink === k ? "on" : ""} onClick={() => setBg({ ink: k })}>
+                      {k === "auto" ? "Otomatik" : k === "dark" ? "Koyu" : "Açık"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
           <div className="panel">
             <div className="panel-title">Kompozisyon</div>
             <div className="field" style={{ marginTop: 12 }}>
+              <label>Ekran görüntüsü konumu</label>
+              <div className="seg">
+                {(["bottom", "top"] as ShotAnchor[]).map((a) => (
+                  <button key={a} className={config.shotAnchor === a ? "on" : ""} onClick={() => set({ shotAnchor: a })}>
+                    {a === "bottom" ? "Altta" : "Üstte"}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="field">
               <label>
                 Telefon eğimi · <b>{config.tilt}°</b> <span className="hint">(0 = düz)</span>
               </label>
@@ -132,22 +376,29 @@ export function StepStyle({
             </div>
             <div style={{ marginTop: 6 }}>
               <Toggle label="Telefon gölgesi" on={config.shadow} onChange={(v) => set({ shadow: v })} />
-              <Toggle label="Yüzen kartlar & etiketler" sub="🔔 bildirim, AI özeti, filtre çipleri" on={config.floats} onChange={(v) => set({ floats: v })} />
+              <Toggle label="Otomatik yüzen öğeler" sub="hazır set çipleri (kendi öğelerinden ayrı)" on={config.floats} onChange={(v) => set({ floats: v })} />
               <Toggle label="İnce nokta dokusu" on={config.texture} onChange={(v) => set({ texture: v })} />
             </div>
           </div>
+
+          {/* Seçili öğe özellikleri */}
+          {!isFG && selected && (
+            <OverlayProps overlay={selected} onPatch={patchOverlay} onDelete={deleteOverlay} onFront={() => moveZ(1)} onBack={() => moveZ(-1)} />
+          )}
         </div>
 
-        {/* Sağ: canlı önizleme */}
+        {/* Sağ: canlı editör / önizleme */}
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <div className="actionbar" style={{ marginBottom: 0 }}>
-            <select value={previewSlide?.id} onChange={(e) => setPreviewIdx(enabled.findIndex((s) => s.id === e.target.value))} style={{ maxWidth: 220 }}>
-              {enabled.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
+            {!isFG && (
+              <select value={previewSlide?.id} onChange={(e) => setPreviewIdx(enabled.findIndex((s) => s.id === e.target.value))} style={{ maxWidth: 200 }}>
+                {enabled.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            )}
             <div className="seg">
               {previewDevices.map((d) => (
                 <button key={d} className={pdev === d ? "on" : ""} onClick={() => setPreviewDevice(d)}>
@@ -164,17 +415,32 @@ export function StepStyle({
             </button>
           </div>
 
-          <div className="preview-frame" style={{ "--ar": `${dev.designW} / ${dev.designH}`, maxWidth: pdev === "feature-graphic" ? "100%" : 420, margin: "0 auto" } as CSSProperties}>
-            <SlidePreview designW={dev.designW} designH={dev.designH}>
-              {pdev === "feature-graphic" ? (
+          {/* Öğe ekleme araç çubuğu (slayt cihazları için) */}
+          {!isFG && previewSlide && (
+            <div className="oe-toolbar">
+              <span className="oe-hint">Öğe ekle:</span>
+              <button className="btn btn-sm" onClick={() => addOverlay(newPill())}>＋ Etiket</button>
+              <button className="btn btn-sm" onClick={() => addOverlay(newCard())}>＋ Kart</button>
+              <button className="btn btn-sm" onClick={() => ovFileRef.current?.click()}>＋ Görsel</button>
+              <div className="grow" style={{ flex: 1 }} />
+              <span className="oe-hint">{overlays.length} öğe · tuvale sürükle-bırak</span>
+            </div>
+          )}
+
+          <div className="preview-frame" style={{ "--ar": `${dev.designW} / ${dev.designH}`, maxWidth: isFG ? "100%" : 420, margin: "0 auto" } as CSSProperties}>
+            {isFG ? (
+              <SlidePreview designW={dev.designW} designH={dev.designH}>
                 <FeatureGraphicView appName={APP_NAME} tagline={APP_TAGLINE} shot={fgShot} config={config} />
-              ) : previewSlide ? (
-                <SlideView slide={previewSlide} device={pdev} config={config} />
-              ) : null}
-            </SlidePreview>
+              </SlidePreview>
+            ) : previewSlide ? (
+              <OverlayEditor slide={previewSlide} device={pdev} config={config} selectedId={selId} onSelect={setSelId} onChange={setOverlays} />
+            ) : null}
           </div>
         </div>
       </div>
+
+      <input ref={bgFileRef} type="file" accept="image/*" hidden onChange={(e) => onBgFile(e.target.files)} />
+      <input ref={ovFileRef} type="file" accept="image/*" multiple hidden onChange={(e) => onOverlayFile(e.target.files)} />
     </>
   );
 }
