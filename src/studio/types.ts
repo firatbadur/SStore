@@ -74,7 +74,20 @@ export interface OverlayCard extends OverlayBase {
   scale: number;
 }
 
-export type Overlay = OverlayImage | OverlayPill | OverlayCard;
+/** Kullanıcının eklediği serbest metin/başlık */
+export interface OverlayText extends OverlayBase {
+  type: "text";
+  /** *vurgu* ve satır için \n destekler */
+  text: string;
+  scale: number;
+  /** yazı kalınlığı (400–800) */
+  weight: number;
+  align: "left" | "center" | "right";
+  /** renk (hex); tanımsız = temanın ink rengi */
+  color?: string;
+}
+
+export type Overlay = OverlayImage | OverlayPill | OverlayCard | OverlayText;
 
 /** Kısmi güncelleme — tüm overlay alanları opsiyonel (tipe özel dahil) */
 export interface OverlayPatch {
@@ -89,6 +102,9 @@ export interface OverlayPatch {
   solid?: boolean;
   title?: string;
   rows?: string[];
+  weight?: number;
+  align?: "left" | "center" | "right";
+  color?: string;
 }
 
 /** Kullanıcının seçtiği tek bir ekran görüntüsü → bir slayt */

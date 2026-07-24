@@ -6,11 +6,11 @@
    ══════════════════════════════════════════════════════════════════════ */
 import { useEffect, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent, DragEvent as ReactDragEvent } from "react";
-import type { DeviceId, Overlay, OverlayCard, OverlayImage, OverlayPatch, OverlayPill, StyleConfig } from "../studio/types";
+import type { DeviceId, Overlay, OverlayCard, OverlayImage, OverlayPatch, OverlayPill, OverlayText, StyleConfig } from "../studio/types";
 import type { BuiltinSlide } from "../studio/presets";
 import { DEVICES } from "../studio/devices";
 import { SlideView, OverlayVisual, overlayStyle } from "../studio/slides";
-import { surfaceOf, applyInk, resolveBackground } from "../studio/theme";
+import { surfaceOf, applyInk, resolveBackground, fontStack } from "../studio/theme";
 
 const uid = () => `ov-${Math.random().toString(36).slice(2, 9)}`;
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
@@ -24,6 +24,9 @@ export function newCard(): OverlayCard {
 }
 export function newImage(src: string, x = 37, y = 36): OverlayImage {
   return { id: uid(), type: "image", src, x, y, w: 26, rot: 0 };
+}
+export function newText(): OverlayText {
+  return { id: uid(), type: "text", text: "Yeni *başlık*", x: 12, y: 20, rot: 0, scale: 1, weight: 800, align: "left" };
 }
 
 export function readImageFile(file: File): Promise<string> {
@@ -61,6 +64,7 @@ export function OverlayEditor({
   const bgOverride = resolveBackground(config.background);
   let s = surfaceOf(config.theme, slide.tone, config.accent);
   if (bgOverride && config.background.ink !== "auto") s = applyInk(s, config.background.ink);
+  const font = fontStack(config.font);
 
   const rootRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -87,11 +91,11 @@ export function OverlayEditor({
     e.currentTarget.setPointerCapture(e.pointerId);
     drag.current = { id: o.id, mode: "move", sx: e.clientX, sy: e.clientY, ox: o.x, oy: o.y, ow: 0 };
   };
-  const startResize = (e: ReactPointerEvent, o: OverlayImage) => {
+  const startResize = (e: ReactPointerEvent, o: OverlayImage | OverlayText) => {
     e.stopPropagation();
     onSelect(o.id);
     e.currentTarget.setPointerCapture(e.pointerId);
-    drag.current = { id: o.id, mode: "resize", sx: e.clientX, sy: e.clientY, ox: o.x, oy: o.y, ow: o.w };
+    drag.current = { id: o.id, mode: "resize", sx: e.clientX, sy: e.clientY, ox: o.x, oy: o.y, ow: o.type === "image" ? o.w : o.scale };
   };
   const onMove = (e: ReactPointerEvent) => {
     const d = drag.current;
@@ -99,8 +103,13 @@ export function OverlayEditor({
     const r = rect();
     const dxp = ((e.clientX - d.sx) / r.width) * 100;
     const dyp = ((e.clientY - d.sy) / r.height) * 100;
-    if (d.mode === "move") patch(d.id, { x: clamp(d.ox + dxp, -30, 120), y: clamp(d.oy + dyp, -30, 120) });
-    else patch(d.id, { w: clamp(d.ow + dxp, 4, 160) });
+    if (d.mode === "move") {
+      patch(d.id, { x: clamp(d.ox + dxp, -30, 120), y: clamp(d.oy + dyp, -30, 120) });
+    } else {
+      const el = overlays.find((x) => x.id === d.id);
+      if (el?.type === "text") patch(d.id, { scale: clamp(d.ow + dxp * 0.03, 0.3, 6) });
+      else patch(d.id, { w: clamp(d.ow + dxp, 4, 160) });
+    }
   };
   const onUp = (e: ReactPointerEvent) => {
     drag.current = null;
@@ -166,8 +175,8 @@ export function OverlayEditor({
                 onPointerMove={onMove}
                 onPointerUp={onUp}
               >
-                <OverlayVisual o={o} cW={cW} s={s} />
-                {sel && o.type === "image" && (
+                <OverlayVisual o={o} cW={cW} s={s} font={font} />
+                {sel && (o.type === "image" || o.type === "text") && (
                   <div
                     className="oe-handle"
                     style={{
@@ -180,7 +189,7 @@ export function OverlayEditor({
                       background: config.accent,
                       cursor: "nwse-resize",
                     }}
-                    onPointerDown={(e) => startResize(e, o)}
+                    onPointerDown={(e) => startResize(e, o as OverlayImage | OverlayText)}
                     onPointerMove={onMove}
                     onPointerUp={onUp}
                   />

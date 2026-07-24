@@ -824,6 +824,9 @@ input[type="range"] {
 .oe-elpanel {
   position: sticky;
   top: 76px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 .oe-side-empty {
   border-style: dashed;

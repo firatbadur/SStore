@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
-import type { BackgroundMode, DeviceId, Overlay, OverlayPatch, ShotAnchor, StyleConfig } from "../studio/types";
+import type { BackgroundMode, DeviceId, LayoutId, Overlay, OverlayPatch, ShotAnchor, StyleConfig } from "../studio/types";
 import type { BuiltinSlide } from "../studio/presets";
 import { APP_NAME, APP_TAGLINE } from "../studio/presets";
 import { FeatureGraphicView } from "../studio/slides";
 import { SlidePreview } from "./SlidePreview";
-import { OverlayEditor, newCard, newImage, newPill, readImageFile } from "./OverlayEditor";
+import { OverlayEditor, newCard, newImage, newPill, newText, readImageFile } from "./OverlayEditor";
 import { THEMES, FONTS, ACCENTS } from "../studio/theme";
 import { DEVICES } from "../studio/devices";
 
@@ -16,6 +16,21 @@ const BG_MODES: { id: BackgroundMode; label: string }[] = [
   { id: "solid", label: "Düz renk" },
   { id: "gradient", label: "Gradyan" },
   { id: "image", label: "Görsel" },
+];
+
+const LAYOUTS: { id: LayoutId; label: string }[] = [
+  { id: "center", label: "Orta" },
+  { id: "left", label: "Sol" },
+  { id: "right", label: "Sağ" },
+  { id: "card", label: "Kart" },
+  { id: "finale", label: "Kapanış" },
+];
+
+const WEIGHTS: { v: number; label: string }[] = [
+  { v: 400, label: "İnce" },
+  { v: 600, label: "Orta" },
+  { v: 700, label: "Kalın" },
+  { v: 800, label: "Ekstra" },
 ];
 
 function Toggle({ label, sub, on, onChange }: { label: string; sub?: string; on: boolean; onChange: (v: boolean) => void }) {
@@ -45,24 +60,66 @@ function ColorField({ label, value, onChange }: { label: string; value: string; 
 /* ─── Seçili overlay öğesi özellikleri ─── */
 function OverlayProps({
   overlay,
+  accent,
   onPatch,
   onDelete,
   onFront,
   onBack,
 }: {
   overlay: Overlay;
+  accent: string;
   onPatch: (p: OverlayPatch) => void;
   onDelete: () => void;
   onFront: () => void;
   onBack: () => void;
 }) {
   const o = overlay;
+  const typeLabel = o.type === "image" ? "Görsel" : o.type === "card" ? "Kart" : o.type === "text" ? "Metin" : "Etiket";
   return (
     <div className="panel">
-      <div className="panel-title">
-        Öğe · {o.type === "image" ? "Görsel" : o.type === "card" ? "Kart" : "Etiket"}
-      </div>
+      <div className="panel-title">Öğe · {typeLabel}</div>
       <div className="panel-sub">Tuvalde sürükleyerek taşı, seçiliyken düzenle.</div>
+
+      {o.type === "text" && (
+        <>
+          <div className="field">
+            <label>
+              Metin <span className="hint">— vurgu için *kelime*, alt satır için Enter</span>
+            </label>
+            <textarea rows={2} value={o.text} onChange={(e) => onPatch({ text: e.target.value })} />
+          </div>
+          <div className="field">
+            <label>Kalınlık</label>
+            <div className="seg">
+              {WEIGHTS.map((w) => (
+                <button key={w.v} className={o.weight === w.v ? "on" : ""} onClick={() => onPatch({ weight: w.v })}>
+                  {w.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="field">
+            <label>Hiza</label>
+            <div className="seg">
+              {(["left", "center", "right"] as const).map((a) => (
+                <button key={a} className={o.align === a ? "on" : ""} onClick={() => onPatch({ align: a })}>
+                  {a === "left" ? "Sol" : a === "center" ? "Orta" : "Sağ"}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="field">
+            <label>Renk</label>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <label className="swatch" style={{ width: 30, height: 30, background: o.color ?? "#111827", position: "relative" }} title="Özel renk">
+                <input type="color" value={o.color ?? "#111827"} onChange={(e) => onPatch({ color: e.target.value })} style={{ opacity: 0, position: "absolute", inset: 0, cursor: "pointer" }} />
+              </label>
+              <button className="btn btn-sm" onClick={() => onPatch({ color: accent })}>Vurgu</button>
+              <button className="btn btn-sm btn-ghost" onClick={() => onPatch({ color: undefined })}>Tema rengi</button>
+            </div>
+          </div>
+        </>
+      )}
 
       {o.type === "pill" && (
         <>
@@ -193,6 +250,12 @@ export function StepStyle({
     const next = [...overlays];
     [next[i], next[j]] = [next[j], next[i]];
     setOverlays(next);
+  };
+
+  // Bu sayfanın (slaytın) kendi metni/yerleşimi
+  const patchSlide = (p: Partial<BuiltinSlide>) => {
+    if (!previewSlide) return;
+    setSlides(slides.map((s) => (s.id === previewSlide.id ? { ...s, ...p } : s)));
   };
 
   const onBgFile = async (files: FileList | null) => {
@@ -415,6 +478,7 @@ export function StepStyle({
           {!isFG && previewSlide && (
             <div className="oe-toolbar">
               <span className="oe-hint">Öğe ekle:</span>
+              <button className="btn btn-sm" onClick={() => addOverlay(newText())}>＋ Metin</button>
               <button className="btn btn-sm" onClick={() => addOverlay(newPill())}>＋ Etiket</button>
               <button className="btn btn-sm" onClick={() => addOverlay(newCard())}>＋ Kart</button>
               <button className="btn btn-sm" onClick={() => ovFileRef.current?.click()}>＋ Görsel</button>
@@ -440,18 +504,50 @@ export function StepStyle({
             <div className="panel oe-side-empty">
               <div className="panel-title">Öğe düzenleme</div>
               <div className="panel-sub" style={{ marginBottom: 0 }}>
-                Feature Graphic için serbest öğe yok. iPhone ya da Android seçince etiket, kart ve görsel ekleyebilirsin.
+                Feature Graphic için serbest öğe yok. iPhone ya da Android seçince metin, etiket, kart ve görsel ekleyebilirsin.
               </div>
             </div>
-          ) : selected ? (
-            <OverlayProps overlay={selected} onPatch={patchOverlay} onDelete={deleteOverlay} onFront={() => moveZ(1)} onBack={() => moveZ(-1)} />
           ) : (
-            <div className="panel oe-side-empty">
-              <div className="panel-title">Öğe seçili değil</div>
-              <div className="panel-sub" style={{ marginBottom: 0 }}>
-                Tuvaldeki bir öğeye tıkla ya da ortadaki “＋ Etiket / Kart / Görsel” ile ekle. Seçili öğenin metni, boyutu, döndürmesi ve sırası burada.
-              </div>
-            </div>
+            <>
+              {/* Sayfanın kendi başlığı/etiketi — Adım 1'e dönmeden düzenlenir */}
+              {previewSlide && (
+                <div className="panel">
+                  <div className="panel-title">Sayfa metni</div>
+                  <div className="panel-sub">Bu sayfanın üst etiketi, başlığı ve yerleşimi</div>
+                  <div className="field">
+                    <label>Üst etiket</label>
+                    <input type="text" value={previewSlide.kicker} onChange={(e) => patchSlide({ kicker: e.target.value })} />
+                  </div>
+                  <div className="field">
+                    <label>
+                      Başlık <span className="hint">— *vurgu* + Enter</span>
+                    </label>
+                    <textarea rows={3} value={previewSlide.headline} onChange={(e) => patchSlide({ headline: e.target.value })} />
+                  </div>
+                  <div className="field" style={{ marginBottom: 0 }}>
+                    <label>Yerleşim</label>
+                    <div className="seg">
+                      {LAYOUTS.map((l) => (
+                        <button key={l.id} className={previewSlide.layout === l.id ? "on" : ""} onClick={() => patchSlide({ layout: l.id })}>
+                          {l.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {selected ? (
+                <OverlayProps overlay={selected} accent={config.accent} onPatch={patchOverlay} onDelete={deleteOverlay} onFront={() => moveZ(1)} onBack={() => moveZ(-1)} />
+              ) : (
+                <div className="panel oe-side-empty">
+                  <div className="panel-title">Öğe eklemek için</div>
+                  <div className="panel-sub" style={{ marginBottom: 0 }}>
+                    Ortadaki “＋ Metin / Etiket / Kart / Görsel” ile ekle, ya da tuvaldeki bir öğeye tıklayıp buradan düzenle.
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

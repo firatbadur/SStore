@@ -273,12 +273,19 @@ export function overlayStyle(o: Overlay): CSSProperties {
 }
 
 /** Bir overlay'in iç görseli — konumlandırma yok, sadece görünüm */
-export function OverlayVisual({ o, cW, s }: { o: Overlay; cW: number; s: Surface }) {
+export function OverlayVisual({ o, cW, s, font }: { o: Overlay; cW: number; s: Surface; font: string }) {
   if (o.type === "image") {
     return <img src={resolveImg(o.src)} alt="" draggable={false} style={{ display: "block", width: "100%", height: "auto", pointerEvents: "none" }} />;
   }
   if (o.type === "card") {
     return <PopCard cW={cW * o.scale} s={s} icon={o.icon} title={o.title} rows={o.rows} />;
+  }
+  if (o.type === "text") {
+    return (
+      <div style={{ fontFamily: font, fontSize: cW * 0.05 * o.scale, fontWeight: o.weight, lineHeight: 1.08, letterSpacing: "-0.02em", textAlign: o.align }}>
+        {parseHeadline(o.text, o.color || s.ink, s.accent)}
+      </div>
+    );
   }
   return (
     <Pill cW={cW * o.scale} s={s} solid={o.solid} icon={o.icon}>
@@ -288,13 +295,13 @@ export function OverlayVisual({ o, cW, s }: { o: Overlay; cW: number; s: Surface
 }
 
 /** Statik overlay katmanı (önizleme/export). Tıklamayı engellemez. */
-function OverlayLayer({ overlays, cW, s }: { overlays: Overlay[]; cW: number; s: Surface }) {
+function OverlayLayer({ overlays, cW, s, font }: { overlays: Overlay[]; cW: number; s: Surface; font: string }) {
   if (!overlays.length) return null;
   return (
     <div style={{ position: "absolute", inset: 0, zIndex: 8, pointerEvents: "none" }}>
       {overlays.map((o) => (
         <div key={o.id} style={overlayStyle(o)}>
-          <OverlayVisual o={o} cW={cW} s={s} />
+          <OverlayVisual o={o} cW={cW} s={s} font={font} />
         </div>
       ))}
     </div>
@@ -324,7 +331,7 @@ export function SlideView({ slide, device, config }: { slide: SlideSpec; device:
   const vpos = (offset: string): CSSProperties => (shotTop ? { top: offset } : { bottom: offset });
   const fpos = (frac: number): CSSProperties => (shotTop ? { bottom: cH * frac } : { top: cH * frac });
 
-  const overlayLayer = <OverlayLayer overlays={overlays} cW={cW} s={s} />;
+  const overlayLayer = <OverlayLayer overlays={overlays} cW={cW} s={s} font={font} />;
 
   if (slide.layout === "finale") {
     return (
