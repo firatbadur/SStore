@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 
+# Yerel geliştirme notları / araç ayarları — herkese açık repoya girmez
+CLAUDE.md
+.claude/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
