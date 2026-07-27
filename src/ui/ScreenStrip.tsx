@@ -3,7 +3,7 @@
    Projedeki ekran görüntülerini yönet: seç (önizle), üretime aç/kapat,
    sırala, sil, yeni yükle. Detaylı metin/stil düzenleme sağ menüde.
    ══════════════════════════════════════════════════════════════════════ */
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import type { StyleConfig } from "../studio/types";
 import type { BuiltinSlide } from "../studio/presets";
 import { slideFromShot } from "../studio/projects";
@@ -25,6 +25,19 @@ export function ScreenStrip({
   setActiveId: (id: string) => void;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
+  const dragIdx = useRef<number | null>(null);
+  const [overIdx, setOverIdx] = useState<number | null>(null);
+
+  const reorder = (to: number) => {
+    const from = dragIdx.current;
+    dragIdx.current = null;
+    setOverIdx(null);
+    if (from === null || from === to) return;
+    const arr = [...slides];
+    const [m] = arr.splice(from, 1);
+    arr.splice(to, 0, m);
+    setSlides(arr);
+  };
 
   const patch = (id: string, p: Partial<BuiltinSlide>) => setSlides(slides.map((s) => (s.id === id ? { ...s, ...p } : s)));
   const remove = (id: string) => setSlides(slides.filter((s) => s.id !== id));
@@ -47,12 +60,37 @@ export function ScreenStrip({
   return (
     <div className="strip">
       {slides.map((s, i) => (
-        <div key={s.id} className={`strip-item ${activeId === s.id ? "active" : ""} ${s.enabled ? "" : "off"}`}>
-          <div className="strip-thumb" onClick={() => setActiveId(s.id)} title="Düzenlemek için seç">
+        <div
+          key={s.id}
+          className={`strip-item ${activeId === s.id ? "active" : ""} ${s.enabled ? "" : "off"} ${overIdx === i ? "dragover" : ""}`}
+          onDragOver={(e) => {
+            e.preventDefault();
+            if (dragIdx.current !== null && overIdx !== i) setOverIdx(i);
+          }}
+          onDrop={(e) => {
+            e.preventDefault();
+            reorder(i);
+          }}
+          onDragEnd={() => {
+            dragIdx.current = null;
+            setOverIdx(null);
+          }}
+        >
+          <div className="strip-thumb">
             <SlidePreview designW={1320} designH={2868}>
               <SlideView slide={s} device="iphone" config={config} />
             </SlidePreview>
             <span className="strip-idx">{i + 1}</span>
+            <div
+              className="strip-hit"
+              draggable
+              title="Sürükleyerek sırala · tıklayarak seç"
+              onClick={() => setActiveId(s.id)}
+              onDragStart={(e) => {
+                dragIdx.current = i;
+                e.dataTransfer.effectAllowed = "move";
+              }}
+            />
           </div>
           <div className="strip-bar">
             <button className={`iconbtn xs ${s.enabled ? "ok" : ""}`} title={s.enabled ? "Üretimde (kapatmak için tıkla)" : "Kapalı (açmak için tıkla)"} onClick={() => patch(s.id, { enabled: !s.enabled })}>

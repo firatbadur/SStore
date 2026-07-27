@@ -324,6 +324,7 @@ export function SlideView({ slide, device, config }: { slide: SlideSpec; device:
   const showFloats = config.floats && floats.length > 0;
   const overlays = slide.overlays ?? [];
   const t = config.tilt;
+  const ps = config.phoneScale ?? 1;
 
   // ss konumu: "bottom" (varsayılan) → telefon altta, metin üstte; "top" → tersi
   const shotTop = config.shotAnchor === "top";
@@ -363,7 +364,7 @@ export function SlideView({ slide, device, config }: { slide: SlideSpec; device:
   }
 
   if (slide.layout === "card") {
-    const pw = fitWidth(cW, cH, dev.ratio, 0.56, 0.68) * 100;
+    const pw = fitWidth(cW, cH, dev.ratio, 0.56, 0.68) * 100 * ps;
     return (
       <Panel s={s} texture={config.texture} bgOverride={bgOverride}>
         <Caption cW={cW} cH={cH} s={s} font={font} kicker={slide.kicker} headline={slide.headline} size={0.08} align={config.align} pad={0.085} anchor={capAnchor} />
@@ -377,7 +378,7 @@ export function SlideView({ slide, device, config }: { slide: SlideSpec; device:
   }
 
   if (slide.layout === "left") {
-    const pw = fitWidth(cW, cH, dev.ratio, 0.66, 0.74) * 100;
+    const pw = fitWidth(cW, cH, dev.ratio, 0.66, 0.74) * 100 * ps;
     return (
       <Panel s={s} texture={config.texture} bgOverride={bgOverride}>
         <Caption cW={cW} cH={cH} s={s} font={font} kicker={slide.kicker} headline={slide.headline} size={0.076} align="left" pad={0.085} anchor={capAnchor} />
@@ -393,7 +394,7 @@ export function SlideView({ slide, device, config }: { slide: SlideSpec; device:
   }
 
   if (slide.layout === "right") {
-    const pw = fitWidth(cW, cH, dev.ratio, 0.66, 0.74) * 100;
+    const pw = fitWidth(cW, cH, dev.ratio, 0.66, 0.74) * 100 * ps;
     return (
       <Panel s={s} texture={config.texture} bgOverride={bgOverride}>
         <Caption cW={cW} cH={cH} s={s} font={font} kicker={slide.kicker} headline={slide.headline} size={0.076} align="right" pad={0.085} anchor={capAnchor} />
@@ -409,7 +410,7 @@ export function SlideView({ slide, device, config }: { slide: SlideSpec; device:
   }
 
   // center (varsayılan)
-  const pw = fitWidth(cW, cH, dev.ratio, 0.6, 0.74) * 100;
+  const pw = fitWidth(cW, cH, dev.ratio, 0.6, 0.74) * 100 * ps;
   return (
     <Panel s={s} texture={config.texture} bgOverride={bgOverride}>
       <Caption cW={cW} cH={cH} s={s} font={font} kicker={slide.kicker} headline={slide.headline} size={0.084} align={config.align} pad={0.085} anchor={capAnchor} />
@@ -426,9 +427,34 @@ export function SlideView({ slide, device, config }: { slide: SlideSpec; device:
 }
 
 /* ══════════════════════════════════════════════════════════════════════
-   Feature Graphic (1024×500 — çerçevesiz banner, uygulama adı metin)
+   Feature Graphic (1024×500 — çerçevesiz banner)
+   Metin (başlık/alt metin/kicker) ve ekran görüntüsü kullanıcı tarafından
+   düzenlenir; ekran görüntüsü opsiyoneldir.
    ══════════════════════════════════════════════════════════════════════ */
-export function FeatureGraphicView({ appName, tagline, shot, config }: { appName: string; tagline: string; shot: string; config: StyleConfig }) {
+export interface FGProps {
+  title: string;
+  tagline: string;
+  kicker: string;
+  shot: string;
+  showPhone: boolean;
+}
+
+/** config.featureGraphic + proje adı + slaytlar → somut FG props */
+export function fgResolve(slides: SlideSpec[], config: StyleConfig, projectName: string): FGProps {
+  const fg = config.featureGraphic;
+  const enabled = slides.filter((s) => s.enabled);
+  const chosen = fg.shotSlideId ? slides.find((s) => s.id === fg.shotSlideId && s.shot) : null;
+  const shot = chosen?.shot ?? enabled.find((s) => s.shot)?.shot ?? slides.find((s) => s.shot)?.shot ?? "";
+  return {
+    title: fg.title.trim() || projectName,
+    tagline: fg.tagline,
+    kicker: fg.kicker,
+    shot,
+    showPhone: fg.showPhone,
+  };
+}
+
+export function FeatureGraphicView({ title, tagline, kicker, shot, showPhone, config }: FGProps & { config: StyleConfig }) {
   const dev = DEVICES["feature-graphic"];
   const cW = dev.designW;
   const cH = dev.designH;
@@ -437,19 +463,41 @@ export function FeatureGraphicView({ appName, tagline, shot, config }: { appName
   if (bgOverride && config.background.ink !== "auto") s = applyInk(s, config.background.ink);
   const font = fontStack(config.font);
   const t = config.tilt || 8;
+  const withPhone = showPhone && !!shot;
   return (
     <Panel s={s} texture={config.texture} bgOverride={bgOverride}>
       <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", zIndex: 3 }}>
-        <div style={{ paddingLeft: cW * 0.07, width: "58%" }}>
-          <Kicker label="Kamu İhaleleri" cW={cW} s={s} />
-          <div style={{ height: cH * 0.03 }} />
-          <div style={{ fontFamily: font, fontSize: cW * 0.085, fontWeight: 800, color: s.ink, letterSpacing: "-0.03em", lineHeight: 1.0 }}>{appName}</div>
-          <div style={{ height: cH * 0.03 }} />
-          <div style={{ fontFamily: font, fontSize: cW * 0.042, fontWeight: 600, color: s.sub, letterSpacing: "-0.01em", lineHeight: 1.15 }}>{tagline}</div>
+        <div
+          style={{
+            paddingLeft: cW * 0.07,
+            paddingRight: withPhone ? 0 : cW * 0.07,
+            width: withPhone ? "58%" : "100%",
+            textAlign: withPhone ? "left" : "center",
+          }}
+        >
+          <Kicker label={kicker} cW={cW} s={s} />
+          {kicker && <div style={{ height: cH * 0.03 }} />}
+          <div style={{ fontFamily: font, fontSize: cW * 0.085, fontWeight: 800, color: s.ink, letterSpacing: "-0.03em", lineHeight: 1.0 }}>{title}</div>
+          {tagline && (
+            <>
+              <div style={{ height: cH * 0.03 }} />
+              <div style={{ fontFamily: font, fontSize: cW * 0.042, fontWeight: 600, color: s.sub, letterSpacing: "-0.01em", lineHeight: 1.15 }}>{tagline}</div>
+            </>
+          )}
         </div>
-        <div style={{ position: "absolute", right: cW * 0.05, top: "50%", transform: "translateY(-50%)" }}>
-          <Phone Frame={dev.Frame} src={shot} alt={appName} widthPct={100} rotate={-t} shadow={config.shadow} style={{ position: "relative", width: cW * 0.3, transform: `rotate(${-t}deg)` }} />
-        </div>
+        {withPhone && (
+          <div style={{ position: "absolute", right: cW * 0.05, top: "50%", transform: "translateY(-50%)" }}>
+            <Phone
+              Frame={dev.Frame}
+              src={shot}
+              alt={title}
+              widthPct={100}
+              rotate={-t}
+              shadow={config.shadow}
+              style={{ position: "relative", width: cW * 0.3 * (config.phoneScale ?? 1), transform: `rotate(${-t}deg)` }}
+            />
+          </div>
+        )}
       </div>
     </Panel>
   );

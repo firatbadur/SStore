@@ -148,6 +148,7 @@ export const DEFAULT_CONFIG: StyleConfig = {
   font: "jakarta",
   accent: "#2B6CB0",
   tilt: 0, // düz telefon (kullanıcı tercihi)
+  phoneScale: 1,
   shadow: true,
   floats: true,
   texture: true,
@@ -161,6 +162,13 @@ export const DEFAULT_CONFIG: StyleConfig = {
     imageFit: "cover",
     scrim: 0.28,
     ink: "auto",
+  },
+  featureGraphic: {
+    title: "", // boş → proje adı
+    tagline: "",
+    kicker: "",
+    showPhone: true,
+    shotSlideId: null,
   },
   devices: ["iphone", "android"],
 };

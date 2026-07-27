@@ -150,6 +150,18 @@ export interface BackgroundConfig {
 /** Ekran görüntüsünün dikey yerleşimi */
 export type ShotAnchor = "bottom" | "top";
 
+/** Feature Graphic (Play Store banner) ayarı */
+export interface FeatureGraphicConfig {
+  /** boş → proje adı kullanılır */
+  title: string;
+  tagline: string;
+  kicker: string;
+  /** telefon/ekran görüntüsü gösterilsin mi */
+  showPhone: boolean;
+  /** hangi slaytın ekranı; null → ilk uygun ekran */
+  shotSlideId: string | null;
+}
+
 /** Üretim stili — "nasıl bir mağaza görseli" sorusunun cevabı */
 export interface StyleConfig {
   theme: ThemeId;
@@ -158,6 +170,8 @@ export interface StyleConfig {
   accent: string;
   /** Telefon eğim açısı (derece). 0 = düz */
   tilt: number;
+  /** Telefon boyut çarpanı (1 = varsayılan) */
+  phoneScale: number;
   /** Telefon gölgesi */
   shadow: boolean;
   /** Yüzen kart / pill'ler görünsün mü */
@@ -170,6 +184,8 @@ export interface StyleConfig {
   shotAnchor: ShotAnchor;
   /** Özel arka plan */
   background: BackgroundConfig;
+  /** Feature Graphic ayarları */
+  featureGraphic: FeatureGraphicConfig;
   /** Üretilecek cihazlar */
   devices: DeviceId[];
 }

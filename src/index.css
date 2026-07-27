@@ -918,18 +918,33 @@ input[type="range"] {
 .strip-item.off {
   opacity: 0.5;
 }
+.strip-item.dragover {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+  transform: translateY(-2px);
+}
 .strip-thumb {
   position: relative;
   height: 168px;
   overflow: hidden;
-  cursor: pointer;
   background: #f1f3f6;
   border-bottom: 1px solid var(--line-2);
+}
+.strip-hit {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  cursor: grab;
+}
+.strip-hit:active {
+  cursor: grabbing;
 }
 .strip-idx {
   position: absolute;
   top: 5px;
   left: 5px;
+  z-index: 6;
+  pointer-events: none;
   width: 18px;
   height: 18px;
   border-radius: 50%;

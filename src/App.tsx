@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import type { DeviceId, GenResult, StyleConfig } from "./studio/types";
-import { BUILTIN_SLIDES, DEFAULT_CONFIG, APP_NAME, APP_TAGLINE, type BuiltinSlide } from "./studio/presets";
+import { BUILTIN_SLIDES, DEFAULT_CONFIG, type BuiltinSlide } from "./studio/presets";
 import type { Project } from "./studio/projects";
 import { loadProjects, saveProjects, newProject, duplicateProject, slideFromShot } from "./studio/projects";
 import { DEVICES } from "./studio/devices";
-import { SlideView, FeatureGraphicView } from "./studio/slides";
+import { SlideView, FeatureGraphicView, fgResolve } from "./studio/slides";
 import { preloadAll } from "./studio/assets";
 import { captureNode, downscale, dataUrlToBlob, writeFile, pickDirectory, fsSupported } from "./studio/render";
 import { readImageFile } from "./ui/OverlayEditor";
@@ -27,12 +27,12 @@ interface StageItem {
 
 const nextPaint = () => new Promise<void>((res) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(res, 60))));
 
-function buildItems(slides: BuiltinSlide[], config: StyleConfig): StageItem[] {
+function buildItems(slides: BuiltinSlide[], config: StyleConfig, projectName: string): StageItem[] {
   const enabled = slides.filter((s) => s.enabled);
   const out: StageItem[] = [];
   for (const device of config.devices) {
     if (device === "feature-graphic") {
-      const shot = enabled.find((s) => s.shot)?.shot ?? "";
+      const fg = fgResolve(slides, config, projectName);
       out.push({
         key: "feature-graphic",
         device,
@@ -40,7 +40,7 @@ function buildItems(slides: BuiltinSlide[], config: StyleConfig): StageItem[] {
         fileBase: "feature-graphic",
         w: DEVICES[device].designW,
         h: DEVICES[device].designH,
-        node: <FeatureGraphicView appName={APP_NAME} tagline={APP_TAGLINE} shot={shot} config={config} />,
+        node: <FeatureGraphicView {...fg} config={config} />,
       });
     } else {
       const d = DEVICES[device];
@@ -80,7 +80,7 @@ export default function App() {
   const slides = active?.slides ?? [];
   const config = active?.config ?? DEFAULT_CONFIG;
 
-  const items = useMemo(() => buildItems(slides, config), [slides, config]);
+  const items = useMemo(() => buildItems(slides, config, active?.name ?? ""), [slides, config, active?.name]);
   const stageMounted = phase === "generating" || phase === "result";
 
   // Projeleri localStorage'a yaz (debounce — sürükleme sırasında spam olmasın)

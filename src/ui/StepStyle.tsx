@@ -2,8 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import type { BackgroundMode, DeviceId, LayoutId, Overlay, OverlayPatch, ShotAnchor, StyleConfig } from "../studio/types";
 import type { BuiltinSlide } from "../studio/presets";
-import { APP_NAME, APP_TAGLINE } from "../studio/presets";
-import { FeatureGraphicView } from "../studio/slides";
+import { FeatureGraphicView, fgResolve } from "../studio/slides";
 import { SlidePreview } from "./SlidePreview";
 import { OverlayEditor, newCard, newImage, newPill, newText, readImageFile } from "./OverlayEditor";
 import { ScreenStrip } from "./ScreenStrip";
@@ -200,6 +199,7 @@ export function StepStyle({
 }) {
   const set = (p: Partial<StyleConfig>) => setConfig({ ...config, ...p });
   const setBg = (p: Partial<StyleConfig["background"]>) => set({ background: { ...config.background, ...p } });
+  const setFG = (p: Partial<StyleConfig["featureGraphic"]>) => set({ featureGraphic: { ...config.featureGraphic, ...p } });
   const enabledCount = slides.filter((s) => s.enabled).length;
 
   const [activeSlideId, setActiveSlideId] = useState<string | null>(null);
@@ -273,7 +273,7 @@ export function StepStyle({
     if (ovFileRef.current) ovFileRef.current.value = "";
   };
 
-  const fgShot = slides.find((s) => s.enabled && s.shot)?.shot ?? slides.find((s) => s.shot)?.shot ?? "";
+  const fg = fgResolve(slides, config, projectName);
 
   return (
     <>
@@ -427,6 +427,12 @@ export function StepStyle({
             </div>
             <div className="field">
               <label>
+                Telefon boyutu · <b>{Math.round(config.phoneScale * 100)}%</b>
+              </label>
+              <input type="range" min={0.6} max={1.4} step={0.02} value={config.phoneScale} onChange={(e) => set({ phoneScale: Number(e.target.value) })} />
+            </div>
+            <div className="field">
+              <label>
                 Telefon eğimi · <b>{config.tilt}°</b> <span className="hint">(0 = düz)</span>
               </label>
               <input type="range" min={0} max={12} step={1} value={config.tilt} onChange={(e) => set({ tilt: Number(e.target.value) })} />
@@ -494,7 +500,7 @@ export function StepStyle({
             <div className="preview-frame" style={{ "--ar": `${dev.designW} / ${dev.designH}`, maxWidth: isFG ? "100%" : 420, margin: "0 auto" } as CSSProperties}>
               {isFG ? (
                 <SlidePreview designW={dev.designW} designH={dev.designH}>
-                  <FeatureGraphicView appName={APP_NAME} tagline={APP_TAGLINE} shot={fgShot} config={config} />
+                  <FeatureGraphicView {...fg} config={config} />
                 </SlidePreview>
               ) : previewSlide ? (
                 <OverlayEditor slide={previewSlide} device={pdev} config={config} selectedId={selId} onSelect={setSelId} onChange={setOverlays} />
@@ -506,11 +512,35 @@ export function StepStyle({
         {/* Sağ: öğe seçimi & düzenleme menüsü */}
         <div className="oe-elpanel">
           {isFG ? (
-            <div className="panel oe-side-empty">
-              <div className="panel-title">Öğe düzenleme</div>
-              <div className="panel-sub" style={{ marginBottom: 0 }}>
-                Feature Graphic için serbest öğe yok. iPhone ya da Android seçince metin, etiket, kart ve görsel ekleyebilirsin.
+            <div className="panel">
+              <div className="panel-title">Feature Graphic</div>
+              <div className="panel-sub">Play Store banner metni ve görseli</div>
+              <div className="field">
+                <label>Üst etiket</label>
+                <input type="text" value={config.featureGraphic.kicker} onChange={(e) => setFG({ kicker: e.target.value })} placeholder="(opsiyonel)" />
               </div>
+              <div className="field">
+                <label>Başlık</label>
+                <input type="text" value={config.featureGraphic.title} onChange={(e) => setFG({ title: e.target.value })} placeholder={projectName} />
+              </div>
+              <div className="field">
+                <label>Alt metin</label>
+                <textarea rows={2} value={config.featureGraphic.tagline} onChange={(e) => setFG({ tagline: e.target.value })} placeholder="(opsiyonel)" />
+              </div>
+              <Toggle label="Ekran görüntüsü göster" on={config.featureGraphic.showPhone} onChange={(v) => setFG({ showPhone: v })} />
+              {config.featureGraphic.showPhone && (
+                <div className="field" style={{ marginTop: 12, marginBottom: 0 }}>
+                  <label>Görsel</label>
+                  <select value={config.featureGraphic.shotSlideId ?? ""} onChange={(e) => setFG({ shotSlideId: e.target.value || null })}>
+                    <option value="">İlk ekran (otomatik)</option>
+                    {slides.filter((s) => s.shot).map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
           ) : (
             <>

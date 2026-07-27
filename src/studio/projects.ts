@@ -6,7 +6,7 @@
    ══════════════════════════════════════════════════════════════════════ */
 import type { StyleConfig } from "./types";
 import type { BuiltinSlide } from "./presets";
-import { BUILTIN_SLIDES, DEFAULT_CONFIG, APP_NAME } from "./presets";
+import { BUILTIN_SLIDES, DEFAULT_CONFIG, APP_NAME, APP_TAGLINE } from "./presets";
 
 export interface Project {
   id: string;
@@ -25,8 +25,25 @@ export function defaultProject(): Project {
     id: uid(),
     name: APP_NAME,
     slides: BUILTIN_SLIDES.map((s) => ({ ...s })),
-    config: { ...DEFAULT_CONFIG },
+    config: {
+      ...DEFAULT_CONFIG,
+      featureGraphic: { title: APP_NAME, tagline: APP_TAGLINE, kicker: "Kamu İhaleleri", showPhone: true, shotSlideId: null },
+    },
     updatedAt: Date.now(),
+  };
+}
+
+/** Kaydedilmiş bir projenin config'ini güncel şemayla birleştir (eski alanlar için) */
+function migrate(p: Project): Project {
+  const c = p.config ?? DEFAULT_CONFIG;
+  return {
+    ...p,
+    config: {
+      ...DEFAULT_CONFIG,
+      ...c,
+      background: { ...DEFAULT_CONFIG.background, ...(c.background ?? {}) },
+      featureGraphic: { ...DEFAULT_CONFIG.featureGraphic, ...(c.featureGraphic ?? {}) },
+    },
   };
 }
 
@@ -50,7 +67,7 @@ export function loadProjects(): Project[] {
     const raw = localStorage.getItem(KEY);
     if (raw) {
       const arr = JSON.parse(raw) as Project[];
-      if (Array.isArray(arr) && arr.length) return arr;
+      if (Array.isArray(arr) && arr.length) return arr.map(migrate);
     }
   } catch {
     /* bozuk/erişilemez — varsayılana düş */
