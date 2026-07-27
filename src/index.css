@@ -198,6 +198,29 @@ h4 {
   letter-spacing: -0.01em;
   margin-bottom: 4px;
 }
+
+/* ─── Açılır-kapanır bölüm ─── */
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 0;
+  text-align: left;
+}
+.section-caret {
+  color: var(--ink-3);
+  font-size: 12px;
+  transition: transform 0.18s ease;
+}
+.section-caret.open {
+  transform: rotate(180deg);
+}
+.section-body {
+  margin-top: 14px;
+}
 .panel-sub {
   color: var(--ink-3);
   font-size: 12.5px;

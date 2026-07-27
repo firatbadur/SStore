@@ -65,6 +65,8 @@ export interface OverlayPill extends OverlayBase {
   solid: boolean;
   /** arka plan rengi (hex); tanımsız = tema varsayılanı */
   bg?: string;
+  /** yazı/ikon rengi (hex); tanımsız = tema varsayılanı */
+  color?: string;
 }
 
 /** Kullanıcının eklediği yüzen kart */
@@ -76,6 +78,8 @@ export interface OverlayCard extends OverlayBase {
   scale: number;
   /** arka plan rengi (hex); tanımsız = tema varsayılanı (beyaz) */
   bg?: string;
+  /** başlık/satır yazı rengi (hex); tanımsız = tema varsayılanı */
+  color?: string;
 }
 
 /** Kullanıcının eklediği serbest metin/başlık */

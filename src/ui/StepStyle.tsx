@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import type { BackgroundMode, DeviceId, LayoutId, Overlay, OverlayPatch, ShotAnchor, StyleConfig } from "../studio/types";
 import type { BuiltinSlide } from "../studio/presets";
 import { FeatureGraphicView, fgResolve } from "../studio/slides";
@@ -46,6 +46,20 @@ function Toggle({ label, sub, on, onChange }: { label: string; sub?: string; on:
   );
 }
 
+/* ─── Açılır-kapanır bölüm (accordion) ─── */
+function Section({ title, children, defaultOpen = true }: { title: string; children: ReactNode; defaultOpen?: boolean }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="panel section">
+      <button className="section-head" onClick={() => setOpen((o) => !o)}>
+        <span className="panel-title" style={{ marginBottom: 0 }}>{title}</span>
+        <span className={`section-caret ${open ? "open" : ""}`}>▾</span>
+      </button>
+      {open && <div className="section-body">{children}</div>}
+    </div>
+  );
+}
+
 function ColorField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
   return (
     <div className="colorfield">
@@ -54,6 +68,22 @@ function ColorField({ label, value, onChange }: { label: string; value: string; 
       </label>
       <span>{label}</span>
       <span className="hex">{value.toUpperCase()}</span>
+    </div>
+  );
+}
+
+/* ─── Öğe yazı rengi kontrolü ─── */
+function InkControl({ value, accent, onChange }: { value?: string; accent: string; onChange: (v: string | undefined) => void }) {
+  return (
+    <div className="field">
+      <label>Yazı rengi</label>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+        <label className="swatch" style={{ width: 30, height: 30, background: value ?? "#111827", position: "relative" }} title="Yazı rengi">
+          <input type="color" value={value ?? "#111827"} onChange={(e) => onChange(e.target.value)} style={{ opacity: 0, position: "absolute", inset: 0, cursor: "pointer" }} />
+        </label>
+        <button className="btn btn-sm" onClick={() => onChange(accent)}>Vurgu</button>
+        <button className="btn btn-sm btn-ghost" onClick={() => onChange(undefined)}>Tema</button>
+      </div>
     </div>
   );
 }
@@ -127,16 +157,7 @@ function OverlayProps({
               ))}
             </div>
           </div>
-          <div className="field">
-            <label>Renk</label>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-              <label className="swatch" style={{ width: 30, height: 30, background: o.color ?? "#111827", position: "relative" }} title="Özel renk">
-                <input type="color" value={o.color ?? "#111827"} onChange={(e) => onPatch({ color: e.target.value })} style={{ opacity: 0, position: "absolute", inset: 0, cursor: "pointer" }} />
-              </label>
-              <button className="btn btn-sm" onClick={() => onPatch({ color: accent })}>Vurgu</button>
-              <button className="btn btn-sm btn-ghost" onClick={() => onPatch({ color: undefined })}>Tema rengi</button>
-            </div>
-          </div>
+          <InkControl value={o.color} accent={accent} onChange={(v) => onPatch({ color: v })} />
           <BgControl value={o.bg} onChange={(v) => onPatch({ bg: v })} clearLabel="Yok" />
         </>
       )}
@@ -152,6 +173,7 @@ function OverlayProps({
             <EmojiPicker value={o.icon} onChange={(v) => onPatch({ icon: v })} />
           </div>
           <Toggle label="Dolu (kart görünümü)" on={o.solid} onChange={(v) => onPatch({ solid: v })} />
+          <InkControl value={o.color} accent={accent} onChange={(v) => onPatch({ color: v })} />
           <BgControl value={o.bg} onChange={(v) => onPatch({ bg: v })} clearLabel="Varsayılan" />
         </>
       )}
@@ -170,6 +192,7 @@ function OverlayProps({
             <label>Satırlar <span className="hint">— her satır bir madde</span></label>
             <textarea rows={3} value={o.rows.join("\n")} onChange={(e) => onPatch({ rows: e.target.value.split("\n") })} />
           </div>
+          <InkControl value={o.color} accent={accent} onChange={(v) => onPatch({ color: v })} />
           <BgControl value={o.bg} onChange={(v) => onPatch({ bg: v })} clearLabel="Varsayılan" />
         </>
       )}
@@ -491,9 +514,8 @@ export function StepStyle({
             )}
           </div>
 
-          <div className="panel">
-            <div className="panel-title">Kompozisyon</div>
-            <div className="field" style={{ marginTop: 12 }}>
+          <Section title="Kompozisyon">
+            <div className="field">
               <label>Ekran görüntüsü konumu</label>
               <div className="seg">
                 {(["bottom", "top"] as ShotAnchor[]).map((a) => (
@@ -531,7 +553,7 @@ export function StepStyle({
               <Toggle label="Otomatik yüzen öğeler" sub="hazır set çipleri (kendi öğelerinden ayrı)" on={config.floats} onChange={(v) => set({ floats: v })} />
               <Toggle label="İnce nokta dokusu" on={config.texture} onChange={(v) => set({ texture: v })} />
             </div>
-          </div>
+          </Section>
 
         </div>
 
@@ -637,9 +659,8 @@ export function StepStyle({
             <>
               {/* Sayfanın kendi başlığı/etiketi — Adım 1'e dönmeden düzenlenir */}
               {previewSlide && (
-                <div className="panel">
-                  <div className="panel-title">Sayfa metni</div>
-                  <div className="panel-sub">Bu sayfanın üst etiketi, başlığı ve yerleşimi</div>
+                <Section title="Sayfa metni">
+                  <div className="panel-sub" style={{ marginBottom: 12 }}>Bu sayfanın üst etiketi, başlığı ve yerleşimi</div>
                   <div className="field">
                     <label>Üst etiket</label>
                     <input type="text" value={previewSlide.kicker} onChange={(e) => patchSlide({ kicker: e.target.value })} />
@@ -702,7 +723,7 @@ export function StepStyle({
                       )}
                     </>
                   )}
-                </div>
+                </Section>
               )}
 
               {selected ? (

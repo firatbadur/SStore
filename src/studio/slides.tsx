@@ -84,7 +84,7 @@ function Kicker({ label, cW, s }: { label: string; cW: number; s: Surface }) {
   );
 }
 
-function Pill({ cW, s, icon, children, solid, bg }: { cW: number; s: Surface; icon?: string; children: ReactNode; solid?: boolean; bg?: string }) {
+function Pill({ cW, s, icon, children, solid, bg, ink }: { cW: number; s: Surface; icon?: string; children: ReactNode; solid?: boolean; bg?: string; ink?: string }) {
   return (
     <div
       style={{
@@ -99,7 +99,7 @@ function Pill({ cW, s, icon, children, solid, bg }: { cW: number; s: Surface; ic
         fontFamily: "'Inter', sans-serif",
         fontSize: cW * 0.026,
         fontWeight: 600,
-        color: solid ? s.cardInk : s.pillInk,
+        color: ink ?? (solid ? s.cardInk : s.pillInk),
         whiteSpace: "nowrap",
       }}
     >
@@ -109,7 +109,7 @@ function Pill({ cW, s, icon, children, solid, bg }: { cW: number; s: Surface; ic
   );
 }
 
-function PopCard({ cW, s, icon, title, rows, bg }: { cW: number; s: Surface; icon?: string; title: string; rows: string[]; bg?: string }) {
+function PopCard({ cW, s, icon, title, rows, bg, ink }: { cW: number; s: Surface; icon?: string; title: string; rows: string[]; bg?: string; ink?: string }) {
   return (
     <div
       style={{
@@ -126,13 +126,13 @@ function PopCard({ cW, s, icon, title, rows, bg }: { cW: number; s: Surface; ico
         <div style={{ width: cW * 0.062, height: cW * 0.062, borderRadius: cW * 0.018, background: `${s.accent}1F`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: cW * 0.032 }}>
           {icon ?? "•"}
         </div>
-        <div style={{ fontSize: cW * 0.03, fontWeight: 700, color: s.cardInk, letterSpacing: "-0.01em" }}>{title}</div>
+        <div style={{ fontSize: cW * 0.03, fontWeight: 700, color: ink ?? s.cardInk, letterSpacing: "-0.01em" }}>{title}</div>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: cW * 0.016 }}>
         {rows.map((r, i) => (
           <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: cW * 0.016 }}>
             <span style={{ marginTop: cW * 0.012, width: cW * 0.014, height: cW * 0.014, borderRadius: "50%", background: s.accent, flexShrink: 0 }} />
-            <span style={{ fontSize: cW * 0.027, fontWeight: 500, color: s.cardSub, lineHeight: 1.4 }}>{r}</span>
+            <span style={{ fontSize: cW * 0.027, fontWeight: 500, color: ink ?? s.cardSub, lineHeight: 1.4 }}>{r}</span>
           </div>
         ))}
       </div>
@@ -289,7 +289,7 @@ export function OverlayVisual({ o, cW, s, font }: { o: Overlay; cW: number; s: S
     return <img src={resolveImg(o.src)} alt="" draggable={false} style={{ display: "block", width: "100%", height: "auto", pointerEvents: "none" }} />;
   }
   if (o.type === "card") {
-    return <PopCard cW={cW * o.scale} s={s} icon={o.icon} title={o.title} rows={o.rows} bg={o.bg} />;
+    return <PopCard cW={cW * o.scale} s={s} icon={o.icon} title={o.title} rows={o.rows} bg={o.bg} ink={o.color} />;
   }
   if (o.type === "text") {
     const fs = cW * 0.05 * o.scale;
@@ -310,7 +310,7 @@ export function OverlayVisual({ o, cW, s, font }: { o: Overlay; cW: number; s: S
     );
   }
   return (
-    <Pill cW={cW * o.scale} s={s} solid={o.solid} icon={o.icon} bg={o.bg}>
+    <Pill cW={cW * o.scale} s={s} solid={o.solid} icon={o.icon} bg={o.bg} ink={o.color}>
       {o.text}
     </Pill>
   );
