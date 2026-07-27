@@ -1,38 +1,44 @@
-# SStore — Ekran Görüntüsü Stüdyosu
+# SStore — App Store & Google Play Screenshot Studio
 
-App Store & Google Play için modern, editoryal tasarımlı **mağaza görselleri** üreten bağımsız web aracı. Gerçek cihaz ekran görüntülerini alır; başlık, telefon çerçevesi, arka plan ve yüzen öğelerle profesyonel görsellere dönüştürür. Tamamen Türkçe arayüz.
+Turn raw device screenshots into modern, editorial‑style **store graphics** for the App Store and Google Play. Add headlines, device frames, backgrounds, and floating badges — then export production‑ready PNGs at every required size.
 
-![3 adım: Ekranlar → Stil → Görseller](public/mockup.png)
+**▶ Live demo: [firatbadur.github.io/SStore](https://firatbadur.github.io/SStore/)**
 
-## Çalıştırma
+> Runs entirely in your browser — no backend, no sign‑up. Your screenshots never leave your device.
+>
+> The app interface is in Turkish.
+
+## Highlights
+
+- **One design → every size.** iPhone (6.9″–6.1″), Android (Google Play FHD/QHD), and Feature Graphic (1024×500) are generated from the same slides.
+- **Full creative control.** Theme, font, accent color, phone tilt (0 = flat), shadow, floating cards, texture, and alignment — all with a live preview.
+- **Bring your own screenshots.** Upload PNGs for any app and edit each slide's headline, layout, and floating badges.
+- **Export your way.** Download a single ZIP grouped by platform, or save straight to a folder (File System Access API — Chrome/Edge).
+- **No logos baked in.** App icons are never stamped onto slides — you add them yourself.
+- **Local‑first.** Projects live in your browser (IndexedDB); nothing is uploaded to a server.
+
+## Getting started
 
 ```bash
-npm install       # ilk kurulum
+npm install       # first time
 npm run dev       # http://localhost:5173
 ```
 
-Diğer:
-
 ```bash
-npm run build     # üretim derlemesi (tip kontrolü dahil)
-npm run preview   # derlemeyi önizle
+npm run build     # production build (type‑checked)
+npm run preview   # preview the production build
 ```
 
-## Akış
+## How it works
 
-1. **Ekranlar** — Mağazada gösterilecek ekran görüntülerini seç, sırala, metinlerini düzenle. Kendi PNG'lerini yükleyebilirsin. (Gömülü hazır set: İhaleTakip)
-2. **Stil** — Nasıl bir görsel istediğini belirle: cihazlar (iPhone / Android / Feature Graphic), tema, font, vurgu rengi, telefon eğimi (0 = düz), gölge, yüzen kartlar, doku. Canlı önizleme.
-3. **Görseller** — Üretilen görseller cihaza göre gruplu. Bir görsele tıkla → büyür, incelenir, boyut boyut indirilir. Tek tek / toptan yeniden üret. Klasör seçip topluca kaydet.
+1. **Projects** — Create a project and upload your screenshots.
+2. **Design** — Choose devices, theme, font, accent, and composition; edit each slide's text and layout with a live preview.
+3. **Export** — Review the generated graphics grouped by device, click to zoom, and download them one by one, as a ZIP, or straight to a folder.
 
-## Özellikler
+## Tech
 
-- **iPhone** (6.9″–6.1″), **Android** (Google Play FHD/QHD) ve **Feature Graphic** (1024×500) çıktıları — aynı slaytlardan uyumlu üretim.
-- **Telefon eğimi ayarlanabilir** (varsayılan düz), tema/font/renk/kompozisyon tam kontrol.
-- **Logo yok** — slaytlara uygulama ikonu basılmaz (elle eklenir).
-- **Tam Türkçe** tipografi (`latin-ext`): ş, ğ, İ, â sorunsuz.
-- **Klasöre kaydet** (File System Access API — Chrome/Edge) ya da tek tek indir.
-- Kendi ekran görüntülerini yükle → her uygulama için kullanılabilir.
+Vite + React + TypeScript single‑page app. DOM‑to‑PNG export via [`html-to-image`](https://github.com/bubkoo/html-to-image). No server, no build‑time secrets.
 
-## Teknik
+## Deployment
 
-Vite + React + TypeScript SPA. Export `html-to-image` ile. Mimari ve katkı notları için `CLAUDE.md`.
+Every push to `main` runs a GitHub Actions workflow that builds the app and deploys it to GitHub Pages.

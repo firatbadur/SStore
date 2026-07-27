@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import type { DeviceId, GenResult, StyleConfig } from "./studio/types";
-import { BUILTIN_SLIDES, DEFAULT_CONFIG, type BuiltinSlide } from "./studio/presets";
+import { DEFAULT_CONFIG, type BuiltinSlide } from "./studio/presets";
 import type { Project } from "./studio/projects";
 import { loadProjects, saveProjects, newProject, duplicateProject, slideFromShot } from "./studio/projects";
 import { DEVICES } from "./studio/devices";
@@ -113,9 +113,9 @@ export default function App() {
       .catch(() => setSaveState("idle"));
   }, [projects]);
 
-  // Gömülü görselleri baştan data-URI'ye çevir (export güvenilirliği)
+  // Telefon çerçevesini baştan data-URI'ye çevir (export güvenilirliği)
   useEffect(() => {
-    preloadAll(["/mockup.png", ...BUILTIN_SLIDES.map((s) => s.shot).filter(Boolean)]).catch(() => {});
+    preloadAll(["/mockup.png"]).catch(() => {});
   }, []);
 
   /* ─── Proje güncelleme (aktif projenin slides/config'i) ─── */

@@ -1,12 +1,12 @@
 /* ══════════════════════════════════════════════════════════════════════
    Projeler — taslak çalışmalar
    Her proje = adlandırılmış bir ekran görüntüsü seti + stil config'i.
-   localStorage'da saklanır (kişisel/dahili araç). Hazır set (İhaleTakip)
-   ilk açılışta varsayılan taslak olarak gelir.
+   IndexedDB'de saklanır. Uygulama boş başlar; kullanıcı kendi projesini
+   oluşturur.
    ══════════════════════════════════════════════════════════════════════ */
 import type { StyleConfig } from "./types";
 import type { BuiltinSlide } from "./presets";
-import { BUILTIN_SLIDES, DEFAULT_CONFIG, APP_NAME, APP_TAGLINE } from "./presets";
+import { DEFAULT_CONFIG } from "./presets";
 import { idbGet, idbSet } from "./store";
 
 export interface Project {
@@ -19,20 +19,6 @@ export interface Project {
 
 const KEY = "sstore.projects.v1";
 const uid = () => `proj-${Math.random().toString(36).slice(2, 9)}`;
-
-/** Hazır set (İhaleTakip) — varsayılan taslak */
-export function defaultProject(): Project {
-  return {
-    id: uid(),
-    name: APP_NAME,
-    slides: BUILTIN_SLIDES.map((s) => ({ ...s })),
-    config: {
-      ...DEFAULT_CONFIG,
-      featureGraphic: { title: APP_NAME, tagline: APP_TAGLINE, kicker: "Kamu İhaleleri", showPhone: true, shotSlideId: null },
-    },
-    updatedAt: Date.now(),
-  };
-}
 
 /** Kaydedilmiş bir projenin config'ini güncel şemayla birleştir (eski alanlar için) */
 function migrate(p: Project): Project {
@@ -85,7 +71,8 @@ export async function loadProjects(): Promise<Project[]> {
   } catch {
     /* yoksay */
   }
-  return [defaultProject()];
+  // Kayıt yoksa boş başla — kullanıcı kendi projesini oluşturur.
+  return [];
 }
 
 export async function saveProjects(projects: Project[]): Promise<void> {
