@@ -21,6 +21,10 @@ export interface FloatSpec {
 function parseHeadline(headline: string, ink: string, accent: string) {
   return headline.split("\n").map((line, li) => {
     const parts = line.split(/(\*[^*]+\*)/g).filter(Boolean);
+    // Boş satır → bir satır yüksekliği kadar boşluk bırak (yazılan boşluklar korunur)
+    if (parts.length === 0) {
+      return <div key={li}>{" "}</div>;
+    }
     return (
       <div key={li}>
         {parts.map((p, pi) => {
@@ -136,11 +140,18 @@ function PopCard({ cW, s, icon, title, rows, bg }: { cW: number; s: Surface; ico
   );
 }
 
-function Rating({ cW, s, text }: { cW: number; s: Surface; text: string }) {
+function Rating({ cW, s, text, stars }: { cW: number; s: Surface; text: string; stars: number }) {
+  const full = Math.max(0, Math.min(5, Math.round(stars)));
   return (
     <div style={{ display: "inline-flex", flexDirection: "column", alignItems: "center", gap: cW * 0.01 }}>
-      <div style={{ display: "flex", gap: cW * 0.006, fontSize: cW * 0.036, color: "#F5A623" }}>{"★★★★★"}</div>
-      <div style={{ fontFamily: "'Inter', sans-serif", fontSize: cW * 0.024, fontWeight: 600, color: s.sub }}>{text}</div>
+      <div style={{ display: "flex", gap: cW * 0.006, fontSize: cW * 0.036 }}>
+        {Array.from({ length: 5 }).map((_, i) => (
+          <span key={i} style={{ color: i < full ? "#F5A623" : "rgba(245,166,35,0.28)" }}>
+            ★
+          </span>
+        ))}
+      </div>
+      {text && <div style={{ fontFamily: "'Inter', sans-serif", fontSize: cW * 0.024, fontWeight: 600, color: s.sub }}>{text}</div>}
     </div>
   );
 }
@@ -367,8 +378,12 @@ export function SlideView({ slide, device, config }: { slide: SlideSpec; device:
               </div>
             </>
           )}
-          <div style={{ height: cH * 0.05 }} />
-          <Rating cW={cW} s={s} text="Kullanıcıların ilk tercihi" />
+          {(slide.showRating ?? true) && (
+            <>
+              <div style={{ height: cH * 0.05 }} />
+              <Rating cW={cW} s={s} stars={slide.ratingStars ?? 5} text={slide.ratingText ?? "Kullanıcıların ilk tercihi"} />
+            </>
+          )}
         </div>
         {overlayLayer}
       </Panel>

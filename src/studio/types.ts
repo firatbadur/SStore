@@ -130,6 +130,12 @@ export interface SlideSpec {
   enabled: boolean;
   /** Başlık boyut çarpanı (1 = varsayılan) */
   headingScale?: number;
+  /** Kapanış (finale) puanı görünsün mü (varsayılan: evet) */
+  showRating?: boolean;
+  /** Kapanış yıldız sayısı 0–5 (varsayılan 5) */
+  ratingStars?: number;
+  /** Kapanış puan yazısı (varsayılan "Kullanıcıların ilk tercihi") */
+  ratingText?: string;
   /** Kullanıcının serbest yerleştirdiği görsel/etiket/kart öğeleri */
   overlays?: Overlay[];
 }

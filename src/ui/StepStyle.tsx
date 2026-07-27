@@ -630,7 +630,7 @@ export function StepStyle({
                       onChange={(e) => patchSlide({ headingScale: Number(e.target.value) })}
                     />
                   </div>
-                  <div className="field" style={{ marginBottom: 0 }}>
+                  <div className="field" style={{ marginBottom: previewSlide.layout === "finale" ? 16 : 0 }}>
                     <label>Yerleşim</label>
                     <div className="seg">
                       {LAYOUTS.map((l) => (
@@ -640,6 +640,35 @@ export function StepStyle({
                       ))}
                     </div>
                   </div>
+
+                  {previewSlide.layout === "finale" && (
+                    <>
+                      <Toggle label="Yıldız & puan göster" on={previewSlide.showRating ?? true} onChange={(v) => patchSlide({ showRating: v })} />
+                      {(previewSlide.showRating ?? true) && (
+                        <>
+                          <div className="field" style={{ marginTop: 12 }}>
+                            <label>Yıldız</label>
+                            <div className="rating-edit">
+                              {Array.from({ length: 5 }).map((_, i) => (
+                                <button
+                                  key={i}
+                                  className={`star ${i < (previewSlide.ratingStars ?? 5) ? "on" : ""}`}
+                                  title={`${i + 1} yıldız`}
+                                  onClick={() => patchSlide({ ratingStars: i + 1 })}
+                                >
+                                  ★
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                          <div className="field" style={{ marginBottom: 0 }}>
+                            <label>Puan yazısı <span className="hint">(boş = gizli)</span></label>
+                            <input type="text" value={previewSlide.ratingText ?? "Kullanıcıların ilk tercihi"} onChange={(e) => patchSlide({ ratingText: e.target.value })} />
+                          </div>
+                        </>
+                      )}
+                    </>
+                  )}
                 </div>
               )}
 
