@@ -58,6 +58,22 @@ function ColorField({ label, value, onChange }: { label: string; value: string; 
   );
 }
 
+/* ─── Öğe arka plan rengi kontrolü ─── */
+function BgControl({ value, onChange, clearLabel }: { value?: string; onChange: (v: string | undefined) => void; clearLabel: string }) {
+  return (
+    <div className="field">
+      <label>Arka plan</label>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+        <label className="swatch" style={{ width: 30, height: 30, background: value ?? "#FFFFFF", position: "relative" }} title="Arka plan rengi">
+          <input type="color" value={value ?? "#FFFFFF"} onChange={(e) => onChange(e.target.value)} style={{ opacity: 0, position: "absolute", inset: 0, cursor: "pointer" }} />
+        </label>
+        <button className="btn btn-sm" onClick={() => onChange("#FFFFFF")}>Beyaz</button>
+        <button className="btn btn-sm btn-ghost" onClick={() => onChange(undefined)}>{clearLabel}</button>
+      </div>
+    </div>
+  );
+}
+
 /* ─── Seçili overlay öğesi özellikleri ─── */
 function OverlayProps({
   overlay,
@@ -121,6 +137,7 @@ function OverlayProps({
               <button className="btn btn-sm btn-ghost" onClick={() => onPatch({ color: undefined })}>Tema rengi</button>
             </div>
           </div>
+          <BgControl value={o.bg} onChange={(v) => onPatch({ bg: v })} clearLabel="Yok" />
         </>
       )}
 
@@ -135,6 +152,7 @@ function OverlayProps({
             <EmojiPicker value={o.icon} onChange={(v) => onPatch({ icon: v })} />
           </div>
           <Toggle label="Dolu (kart görünümü)" on={o.solid} onChange={(v) => onPatch({ solid: v })} />
+          <BgControl value={o.bg} onChange={(v) => onPatch({ bg: v })} clearLabel="Varsayılan" />
         </>
       )}
 
@@ -152,6 +170,7 @@ function OverlayProps({
             <label>Satırlar <span className="hint">— her satır bir madde</span></label>
             <textarea rows={3} value={o.rows.join("\n")} onChange={(e) => onPatch({ rows: e.target.value.split("\n") })} />
           </div>
+          <BgControl value={o.bg} onChange={(v) => onPatch({ bg: v })} clearLabel="Varsayılan" />
         </>
       )}
 

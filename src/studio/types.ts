@@ -63,6 +63,8 @@ export interface OverlayPill extends OverlayBase {
   scale: number;
   /** Dolu (kart benzeri) mı, yarı saydam mı */
   solid: boolean;
+  /** arka plan rengi (hex); tanımsız = tema varsayılanı */
+  bg?: string;
 }
 
 /** Kullanıcının eklediği yüzen kart */
@@ -72,6 +74,8 @@ export interface OverlayCard extends OverlayBase {
   rows: string[];
   icon?: string;
   scale: number;
+  /** arka plan rengi (hex); tanımsız = tema varsayılanı (beyaz) */
+  bg?: string;
 }
 
 /** Kullanıcının eklediği serbest metin/başlık */
@@ -85,6 +89,8 @@ export interface OverlayText extends OverlayBase {
   align: "left" | "center" | "right";
   /** renk (hex); tanımsız = temanın ink rengi */
   color?: string;
+  /** arka plan rengi (hex); tanımsız = arka plansız (şeffaf) */
+  bg?: string;
 }
 
 export type Overlay = OverlayImage | OverlayPill | OverlayCard | OverlayText;
@@ -105,6 +111,7 @@ export interface OverlayPatch {
   weight?: number;
   align?: "left" | "center" | "right";
   color?: string;
+  bg?: string;
 }
 
 /** Kullanıcının seçtiği tek bir ekran görüntüsü → bir slayt */

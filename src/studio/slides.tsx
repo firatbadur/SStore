@@ -80,7 +80,7 @@ function Kicker({ label, cW, s }: { label: string; cW: number; s: Surface }) {
   );
 }
 
-function Pill({ cW, s, icon, children, solid }: { cW: number; s: Surface; icon?: string; children: ReactNode; solid?: boolean }) {
+function Pill({ cW, s, icon, children, solid, bg }: { cW: number; s: Surface; icon?: string; children: ReactNode; solid?: boolean; bg?: string }) {
   return (
     <div
       style={{
@@ -89,7 +89,7 @@ function Pill({ cW, s, icon, children, solid }: { cW: number; s: Surface; icon?:
         gap: cW * 0.016,
         padding: `${cW * 0.018}px ${cW * 0.03}px`,
         borderRadius: 999,
-        background: solid ? s.cardBg : s.pillBg,
+        background: bg ?? (solid ? s.cardBg : s.pillBg),
         border: `1px solid ${solid ? s.cardBorder : s.pillBorder}`,
         boxShadow: solid ? s.cardShadow : "0 10px 26px -14px rgba(15,23,42,0.35)",
         fontFamily: "'Inter', sans-serif",
@@ -105,14 +105,14 @@ function Pill({ cW, s, icon, children, solid }: { cW: number; s: Surface; icon?:
   );
 }
 
-function PopCard({ cW, s, icon, title, rows }: { cW: number; s: Surface; icon?: string; title: string; rows: string[] }) {
+function PopCard({ cW, s, icon, title, rows, bg }: { cW: number; s: Surface; icon?: string; title: string; rows: string[]; bg?: string }) {
   return (
     <div
       style={{
         width: cW * 0.5,
         padding: cW * 0.032,
         borderRadius: cW * 0.045,
-        background: s.cardBg,
+        background: bg ?? s.cardBg,
         border: `1px solid ${s.cardBorder}`,
         boxShadow: s.cardShadow,
         fontFamily: "'Inter', sans-serif",
@@ -278,17 +278,28 @@ export function OverlayVisual({ o, cW, s, font }: { o: Overlay; cW: number; s: S
     return <img src={resolveImg(o.src)} alt="" draggable={false} style={{ display: "block", width: "100%", height: "auto", pointerEvents: "none" }} />;
   }
   if (o.type === "card") {
-    return <PopCard cW={cW * o.scale} s={s} icon={o.icon} title={o.title} rows={o.rows} />;
+    return <PopCard cW={cW * o.scale} s={s} icon={o.icon} title={o.title} rows={o.rows} bg={o.bg} />;
   }
   if (o.type === "text") {
+    const fs = cW * 0.05 * o.scale;
     return (
-      <div style={{ fontFamily: font, fontSize: cW * 0.05 * o.scale, fontWeight: o.weight, lineHeight: 1.08, letterSpacing: "-0.02em", textAlign: o.align }}>
+      <div
+        style={{
+          fontFamily: font,
+          fontSize: fs,
+          fontWeight: o.weight,
+          lineHeight: 1.08,
+          letterSpacing: "-0.02em",
+          textAlign: o.align,
+          ...(o.bg ? { background: o.bg, padding: `${fs * 0.45}px ${fs * 0.6}px`, borderRadius: fs * 0.4 } : {}),
+        }}
+      >
         {parseHeadline(o.text, o.color || s.ink, s.accent)}
       </div>
     );
   }
   return (
-    <Pill cW={cW * o.scale} s={s} solid={o.solid} icon={o.icon}>
+    <Pill cW={cW * o.scale} s={s} solid={o.solid} icon={o.icon} bg={o.bg}>
       {o.text}
     </Pill>
   );
