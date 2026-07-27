@@ -7,7 +7,7 @@ import { loadProjects, saveProjects, newProject, duplicateProject, slideFromShot
 import { DEVICES } from "./studio/devices";
 import { SlideView, FeatureGraphicView, fgResolve } from "./studio/slides";
 import { preloadAll } from "./studio/assets";
-import { captureNode, downscale, dataUrlToBlob, writeFile, pickDirectory, fsSupported } from "./studio/render";
+import { captureNode, downscale, dataUrlToBlob, dataUrlToBytes, makeZip, writeFile, pickDirectory, fsSupported } from "./studio/render";
 import { readImageFile } from "./ui/OverlayEditor";
 import { ProjectsHome } from "./ui/ProjectsHome";
 import { StepStyle } from "./ui/StepStyle";
@@ -72,6 +72,7 @@ export default function App() {
   const [regeneratingKey, setRegeneratingKey] = useState<string | null>(null);
   const [dirHandle, setDirHandle] = useState<FileSystemDirectoryHandle | null>(null);
   const [savingAll, setSavingAll] = useState(false);
+  const [zipping, setZipping] = useState(false);
   const [pending, setPending] = useState<"all" | string[] | null>(null);
 
   const stageRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -181,6 +182,36 @@ export default function App() {
     return done;
   }, []);
 
+  // Cihaz → ZIP klasör adı
+  const deviceFolder = (d: DeviceId) => (d === "iphone" ? "ios" : d === "android" ? "android" : "feature-graphic");
+
+  // Tüm görselleri (her boyutta) klasörlere ayrılmış tek bir ZIP olarak indir
+  const downloadZip = useCallback(
+    async (res: GenResult[]) => {
+      if (!res.length) return;
+      setZipping(true);
+      try {
+        const files: { name: string; data: Uint8Array }[] = [];
+        for (const r of res) {
+          for (const s of DEVICES[r.device].sizes) {
+            const url = await downscale(r.dataUrl, s.w, s.h, r.width, r.height);
+            files.push({ name: `${deviceFolder(r.device)}/${r.fileBase}-${s.w}x${s.h}.png`, data: dataUrlToBytes(url) });
+          }
+        }
+        const zip = makeZip(files);
+        const href = URL.createObjectURL(zip);
+        const a = document.createElement("a");
+        a.href = href;
+        a.download = `${(active?.name || "sstore").replace(/[^\w.-]+/g, "_") || "sstore"}.zip`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(href), 5000);
+      } finally {
+        setZipping(false);
+      }
+    },
+    [active?.name],
+  );
+
   useEffect(() => {
     if (!pending) return;
     let cancelled = false;
@@ -195,6 +226,7 @@ export default function App() {
         if (cancelled) return;
         setResults(res);
         setPhase("result");
+        downloadZip(res); // üretim biter bitmez projeyi ZIP olarak indir
       } else {
         const keys = pending;
         const targets = items.filter((it) => keys.includes(it.key));
@@ -346,6 +378,8 @@ export default function App() {
             onPickDir={pickDir}
             onSaveAll={saveAll}
             savingAll={savingAll}
+            onDownloadZip={() => downloadZip(results)}
+            zipping={zipping}
             onBack={() => setPhase("design")}
           />
         )}

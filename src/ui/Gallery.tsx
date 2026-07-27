@@ -103,6 +103,8 @@ export function Gallery({
   onPickDir,
   onSaveAll,
   savingAll,
+  onDownloadZip,
+  zipping,
   onBack,
 }: {
   results: GenResult[];
@@ -113,6 +115,8 @@ export function Gallery({
   onPickDir: () => void;
   onSaveAll: () => void;
   savingAll: boolean;
+  onDownloadZip: () => void;
+  zipping: boolean;
   onBack: () => void;
 }) {
   const [lbKey, setLbKey] = useState<string | null>(null);
@@ -133,11 +137,14 @@ export function Gallery({
     <>
       <div className="page-head">
         <h1>3 · Görseller hazır</h1>
-        <p>Bir görsele tıkla → büyüt, incele ve dilediğin boyutta indir. Tek tek ya da toptan yeniden üretebilir, seçtiğin klasöre topluca kaydedebilirsin.</p>
+        <p>Proje otomatik olarak ZIP indirildi (iOS / Android / Feature ayrı klasörlerde). Tekrar indirebilir, bir görseli büyütüp inceleyebilir, tek tek ya da toptan yeniden üretebilirsin.</p>
       </div>
 
       <div className="actionbar">
         <span className="pill-note">{results.length} görsel</span>
+        <button className="btn btn-sm btn-primary" onClick={onDownloadZip} disabled={zipping}>
+          {zipping ? "ZIP hazırlanıyor…" : "📦 ZIP indir"}
+        </button>
         <button className="btn btn-sm" onClick={onPickDir}>
           {dirHandle ? `📁 ${dirHandle.name}` : "📁 Kayıt klasörü seç"}
         </button>
