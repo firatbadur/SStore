@@ -62,6 +62,7 @@ function OverlayProps({
   overlay,
   accent,
   onPatch,
+  onAlign,
   onDelete,
   onFront,
   onBack,
@@ -69,6 +70,7 @@ function OverlayProps({
   overlay: Overlay;
   accent: string;
   onPatch: (p: OverlayPatch) => void;
+  onAlign: (axis: "h" | "v", where: "start" | "center" | "end") => void;
   onDelete: () => void;
   onFront: () => void;
   onBack: () => void;
@@ -99,7 +101,7 @@ function OverlayProps({
             </div>
           </div>
           <div className="field">
-            <label>Hiza</label>
+            <label>Metin hizası</label>
             <div className="seg">
               {(["left", "center", "right"] as const).map((a) => (
                 <button key={a} className={o.align === a ? "on" : ""} onClick={() => onPatch({ align: a })}>
@@ -168,6 +170,20 @@ function OverlayProps({
           Döndürme · <b>{o.rot}°</b>
         </label>
         <input type="range" min={-45} max={45} step={1} value={o.rot} onChange={(e) => onPatch({ rot: Number(e.target.value) })} />
+      </div>
+
+      <div className="field">
+        <label>Tuvalde hizala</label>
+        <div className="seg" style={{ marginBottom: 6 }}>
+          <button onClick={() => onAlign("h", "start")}>Sol</button>
+          <button onClick={() => onAlign("h", "center")}>Ortala</button>
+          <button onClick={() => onAlign("h", "end")}>Sağ</button>
+        </div>
+        <div className="seg">
+          <button onClick={() => onAlign("v", "start")}>Üst</button>
+          <button onClick={() => onAlign("v", "center")}>Orta</button>
+          <button onClick={() => onAlign("v", "end")}>Alt</button>
+        </div>
       </div>
 
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -257,6 +273,23 @@ export function StepStyle({
     const next = [...overlays];
     [next[i], next[j]] = [next[j], next[i]];
     setOverlays(next);
+  };
+  // Öğeyi tuvalde hizala — gerçek boyutu (design px) ölçerek % konum hesapla
+  const alignOverlay = (axis: "h" | "v", where: "start" | "center" | "end") => {
+    if (!selId) return;
+    const canvas = document.querySelector(".oe-canvas") as HTMLElement | null;
+    const item = document.querySelector(`.oe-item[data-ovid="${selId}"]`) as HTMLElement | null;
+    if (!canvas || !item) return;
+    const m = 3; // kenar boşluğu (%)
+    if (axis === "h") {
+      const wPct = (item.offsetWidth / canvas.offsetWidth) * 100;
+      const x = where === "start" ? m : where === "center" ? (100 - wPct) / 2 : 100 - wPct - m;
+      patchOverlay({ x });
+    } else {
+      const hPct = (item.offsetHeight / canvas.offsetHeight) * 100;
+      const y = where === "start" ? m : where === "center" ? (100 - hPct) / 2 : 100 - hPct - m;
+      patchOverlay({ y });
+    }
   };
 
   // Bu sayfanın (slaytın) kendi metni/yerleşimi
@@ -564,6 +597,19 @@ export function StepStyle({
                     </label>
                     <textarea rows={3} value={previewSlide.headline} onChange={(e) => patchSlide({ headline: e.target.value })} />
                   </div>
+                  <div className="field">
+                    <label>
+                      Başlık boyutu · <b>{Math.round((previewSlide.headingScale ?? 1) * 100)}%</b>
+                    </label>
+                    <input
+                      type="range"
+                      min={0.6}
+                      max={1.6}
+                      step={0.02}
+                      value={previewSlide.headingScale ?? 1}
+                      onChange={(e) => patchSlide({ headingScale: Number(e.target.value) })}
+                    />
+                  </div>
                   <div className="field" style={{ marginBottom: 0 }}>
                     <label>Yerleşim</label>
                     <div className="seg">
@@ -578,7 +624,7 @@ export function StepStyle({
               )}
 
               {selected ? (
-                <OverlayProps overlay={selected} accent={config.accent} onPatch={patchOverlay} onDelete={deleteOverlay} onFront={() => moveZ(1)} onBack={() => moveZ(-1)} />
+                <OverlayProps overlay={selected} accent={config.accent} onPatch={patchOverlay} onAlign={alignOverlay} onDelete={deleteOverlay} onFront={() => moveZ(1)} onBack={() => moveZ(-1)} />
               ) : (
                 <div className="panel oe-side-empty">
                   <div className="panel-title">Öğe eklemek için</div>

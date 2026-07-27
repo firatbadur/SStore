@@ -165,6 +165,7 @@ export function OverlayEditor({
               <div
                 key={o.id}
                 className="oe-item"
+                data-ovid={o.id}
                 style={{
                   ...overlayStyle(o),
                   cursor: "move",

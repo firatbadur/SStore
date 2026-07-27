@@ -121,6 +121,8 @@ export interface SlideSpec {
   tone: ToneId;
   /** Bu slayt üretime dahil mi */
   enabled: boolean;
+  /** Başlık boyut çarpanı (1 = varsayılan) */
+  headingScale?: number;
   /** Kullanıcının serbest yerleştirdiği görsel/etiket/kart öğeleri */
   overlays?: Overlay[];
 }

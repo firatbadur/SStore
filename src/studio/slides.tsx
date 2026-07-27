@@ -325,6 +325,7 @@ export function SlideView({ slide, device, config }: { slide: SlideSpec; device:
   const overlays = slide.overlays ?? [];
   const t = config.tilt;
   const ps = config.phoneScale ?? 1;
+  const hs = slide.headingScale ?? 1;
 
   // ss konumu: "bottom" (varsayılan) → telefon altta, metin üstte; "top" → tersi
   const shotTop = config.shotAnchor === "top";
@@ -340,7 +341,7 @@ export function SlideView({ slide, device, config }: { slide: SlideSpec; device:
         <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: `0 ${cW * 0.09}px`, textAlign: "center", zIndex: 3 }}>
           <Kicker label={slide.kicker} cW={cW} s={s} />
           <div style={{ height: cH * 0.02 }} />
-          <div style={{ fontFamily: font, fontSize: cW * 0.086, lineHeight: 1.04, letterSpacing: "-0.032em", fontWeight: 800 }}>
+          <div style={{ fontFamily: font, fontSize: cW * 0.086 * hs, lineHeight: 1.04, letterSpacing: "-0.032em", fontWeight: 800 }}>
             {parseHeadline(slide.headline, s.ink, s.accent)}
           </div>
           {showFloats && (
@@ -367,7 +368,7 @@ export function SlideView({ slide, device, config }: { slide: SlideSpec; device:
     const pw = fitWidth(cW, cH, dev.ratio, 0.56, 0.68) * 100 * ps;
     return (
       <Panel s={s} texture={config.texture} bgOverride={bgOverride}>
-        <Caption cW={cW} cH={cH} s={s} font={font} kicker={slide.kicker} headline={slide.headline} size={0.08} align={config.align} pad={0.085} anchor={capAnchor} />
+        <Caption cW={cW} cH={cH} s={s} font={font} kicker={slide.kicker} headline={slide.headline} size={0.08 * hs} align={config.align} pad={0.085} anchor={capAnchor} />
         <Phone Frame={Frame} src={slide.shot} alt={slide.name} widthPct={pw} rotate={t * 0.4} shadow={config.shadow} style={{ left: "50%", ...vpos("-11%"), transform: `translateX(-50%) rotate(${t * 0.4}deg)` }} />
         {showFloats && (
           <div style={{ position: "absolute", ...fpos(0.4), left: cW * 0.06, zIndex: 6 }}>{renderFloat(floats[0], cW, s, 0)}</div>
@@ -381,7 +382,7 @@ export function SlideView({ slide, device, config }: { slide: SlideSpec; device:
     const pw = fitWidth(cW, cH, dev.ratio, 0.66, 0.74) * 100 * ps;
     return (
       <Panel s={s} texture={config.texture} bgOverride={bgOverride}>
-        <Caption cW={cW} cH={cH} s={s} font={font} kicker={slide.kicker} headline={slide.headline} size={0.076} align="left" pad={0.085} anchor={capAnchor} />
+        <Caption cW={cW} cH={cH} s={s} font={font} kicker={slide.kicker} headline={slide.headline} size={0.076 * hs} align="left" pad={0.085} anchor={capAnchor} />
         <Phone Frame={Frame} src={slide.shot} alt={slide.name} widthPct={pw} rotate={t} shadow={config.shadow} style={{ right: "-14%", ...vpos("-8%"), transform: `rotate(${t}deg)` }} />
         {showFloats && (
           <div style={{ position: "absolute", ...fpos(0.33), left: cW * 0.06, display: "flex", flexDirection: "column", gap: cW * 0.02, zIndex: 6 }}>
@@ -397,7 +398,7 @@ export function SlideView({ slide, device, config }: { slide: SlideSpec; device:
     const pw = fitWidth(cW, cH, dev.ratio, 0.66, 0.74) * 100 * ps;
     return (
       <Panel s={s} texture={config.texture} bgOverride={bgOverride}>
-        <Caption cW={cW} cH={cH} s={s} font={font} kicker={slide.kicker} headline={slide.headline} size={0.076} align="right" pad={0.085} anchor={capAnchor} />
+        <Caption cW={cW} cH={cH} s={s} font={font} kicker={slide.kicker} headline={slide.headline} size={0.076 * hs} align="right" pad={0.085} anchor={capAnchor} />
         <Phone Frame={Frame} src={slide.shot} alt={slide.name} widthPct={pw} rotate={-t} shadow={config.shadow} style={{ left: "-14%", ...vpos("-8%"), transform: `rotate(${-t}deg)` }} />
         {showFloats && (
           <div style={{ position: "absolute", ...fpos(0.31), right: cW * 0.05, display: "flex", flexDirection: "column", gap: cW * 0.02, alignItems: "flex-end", zIndex: 6 }}>
@@ -413,7 +414,7 @@ export function SlideView({ slide, device, config }: { slide: SlideSpec; device:
   const pw = fitWidth(cW, cH, dev.ratio, 0.6, 0.74) * 100 * ps;
   return (
     <Panel s={s} texture={config.texture} bgOverride={bgOverride}>
-      <Caption cW={cW} cH={cH} s={s} font={font} kicker={slide.kicker} headline={slide.headline} size={0.084} align={config.align} pad={0.085} anchor={capAnchor} />
+      <Caption cW={cW} cH={cH} s={s} font={font} kicker={slide.kicker} headline={slide.headline} size={0.084 * hs} align={config.align} pad={0.085} anchor={capAnchor} />
       <Phone Frame={Frame} src={slide.shot} alt={slide.name} widthPct={pw} rotate={t * 0.6} shadow={config.shadow} style={{ left: "50%", ...vpos("-9%"), transform: `translateX(-50%) rotate(${t * 0.6}deg)` }} />
       {showFloats && (
         <>
