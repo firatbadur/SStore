@@ -514,7 +514,7 @@ export function StepStyle({
             )}
           </div>
 
-          <Section title="Kompozisyon">
+          <Section title="Kompozisyon" defaultOpen={false}>
             <div className="field">
               <label>Ekran görüntüsü konumu</label>
               <div className="seg">
@@ -659,7 +659,7 @@ export function StepStyle({
             <>
               {/* Sayfanın kendi başlığı/etiketi — Adım 1'e dönmeden düzenlenir */}
               {previewSlide && (
-                <Section title="Sayfa metni">
+                <Section title="Sayfa metni" defaultOpen={false}>
                   <div className="panel-sub" style={{ marginBottom: 12 }}>Bu sayfanın üst etiketi, başlığı ve yerleşimi</div>
                   <div className="field">
                     <label>Üst etiket</label>
