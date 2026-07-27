@@ -6,6 +6,7 @@ import { FeatureGraphicView, fgResolve } from "../studio/slides";
 import { SlidePreview } from "./SlidePreview";
 import { OverlayEditor, newCard, newImage, newPill, newText, readImageFile } from "./OverlayEditor";
 import { ScreenMenu } from "./ScreenMenu";
+import { EmojiPicker } from "./EmojiPicker";
 import { THEMES, FONTS, ACCENTS } from "../studio/theme";
 import { DEVICES } from "../studio/devices";
 
@@ -130,8 +131,8 @@ function OverlayProps({
             <input type="text" value={o.text} onChange={(e) => onPatch({ text: e.target.value })} />
           </div>
           <div className="field">
-            <label>İkon <span className="hint">(emoji, opsiyonel)</span></label>
-            <input type="text" value={o.icon ?? ""} onChange={(e) => onPatch({ icon: e.target.value })} />
+            <label>İkon <span className="hint">(opsiyonel)</span></label>
+            <EmojiPicker value={o.icon} onChange={(v) => onPatch({ icon: v })} />
           </div>
           <Toggle label="Dolu (kart görünümü)" on={o.solid} onChange={(v) => onPatch({ solid: v })} />
         </>
@@ -144,8 +145,8 @@ function OverlayProps({
             <input type="text" value={o.title} onChange={(e) => onPatch({ title: e.target.value })} />
           </div>
           <div className="field">
-            <label>İkon <span className="hint">(emoji)</span></label>
-            <input type="text" value={o.icon ?? ""} onChange={(e) => onPatch({ icon: e.target.value })} />
+            <label>İkon</label>
+            <EmojiPicker value={o.icon} onChange={(v) => onPatch({ icon: v })} />
           </div>
           <div className="field">
             <label>Satırlar <span className="hint">— her satır bir madde</span></label>
