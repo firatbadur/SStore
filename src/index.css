@@ -336,6 +336,10 @@ textarea {
   color: var(--accent);
   box-shadow: var(--shadow-sm);
 }
+.seg button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
 
 /* ─── Toggle ─── */
 .switch {

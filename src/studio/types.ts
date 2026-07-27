@@ -130,6 +130,10 @@ export interface SlideSpec {
   enabled: boolean;
   /** Başlık boyut çarpanı (1 = varsayılan) */
   headingScale?: number;
+  /** Bu sayfaya özel tema (yoksa genel config.theme) */
+  theme?: ThemeId;
+  /** Bu sayfaya özel arka plan (yoksa genel config.background) */
+  background?: BackgroundConfig;
   /** Kapanış (finale) puanı görünsün mü (varsayılan: evet) */
   showRating?: boolean;
   /** Kapanış yıldız sayısı 0–5 (varsayılan 5) */

@@ -238,7 +238,6 @@ export function StepStyle({
   onGenerate: () => void;
 }) {
   const set = (p: Partial<StyleConfig>) => setConfig({ ...config, ...p });
-  const setBg = (p: Partial<StyleConfig["background"]>) => set({ background: { ...config.background, ...p } });
   const setFG = (p: Partial<StyleConfig["featureGraphic"]>) => set({ featureGraphic: { ...config.featureGraphic, ...p } });
   const enabledCount = slides.filter((s) => s.enabled).length;
 
@@ -318,6 +317,24 @@ export function StepStyle({
     setSlides(slides.map((s) => (s.id === previewSlide.id ? { ...s, ...p } : s)));
   };
 
+  // Tema & arka plan slayt bazına: FG'de genel config, slaytta o slayta özel
+  const curTheme = isFG ? config.theme : previewSlide?.theme ?? config.theme;
+  const bgc = isFG ? config.background : previewSlide?.background ?? config.background;
+  const setTheme = (t: StyleConfig["theme"]) => (isFG ? set({ theme: t }) : patchSlide({ theme: t }));
+  const setBg = (p: Partial<StyleConfig["background"]>) => {
+    const next = { ...bgc, ...p };
+    if (isFG) set({ background: next });
+    else patchSlide({ background: next });
+  };
+  const applyThemeBgToAll = () => setSlides(slides.map((s) => ({ ...s, theme: curTheme, background: bgc })));
+
+  // Ekranlar arası önceki/sonraki
+  const slideIdx = slides.findIndex((s) => s.id === previewSlide?.id);
+  const goSlide = (d: number) => {
+    const j = slideIdx + d;
+    if (j >= 0 && j < slides.length) setActiveSlideId(slides[j].id);
+  };
+
   const onBgFile = async (files: FileList | null) => {
     if (!files || !files[0]) return;
     const url = await readImageFile(files[0]);
@@ -359,10 +376,10 @@ export function StepStyle({
           <div className="panel">
             <div className="panel-title">Tema & Font</div>
             <div className="field" style={{ marginTop: 12 }}>
-              <label>Tema</label>
+              <label>Tema {!isFG && <span className="hint">(bu sayfaya özel)</span>}</label>
               <div className="seg">
                 {THEMES.map((t) => (
-                  <button key={t.id} className={config.theme === t.id ? "on" : ""} onClick={() => set({ theme: t.id })}>
+                  <button key={t.id} className={curTheme === t.id ? "on" : ""} onClick={() => setTheme(t.id)}>
                     {t.label}
                   </button>
                 ))}
@@ -393,42 +410,42 @@ export function StepStyle({
 
           {/* Arka plan */}
           <div className="panel">
-            <div className="panel-title">Arka plan</div>
+            <div className="panel-title">Arka plan {!isFG && <span className="hint">(bu sayfaya özel)</span>}</div>
             <div className="panel-sub">Temanın zemini yerine kendi rengin, gradyanın veya görselin</div>
             <div className="seg" style={{ display: "flex", flexWrap: "wrap" }}>
               {BG_MODES.map((m) => (
-                <button key={m.id} className={config.background.mode === m.id ? "on" : ""} onClick={() => setBg({ mode: m.id })}>
+                <button key={m.id} className={bgc.mode === m.id ? "on" : ""} onClick={() => setBg({ mode: m.id })}>
                   {m.label}
                 </button>
               ))}
             </div>
 
-            {config.background.mode === "solid" && (
+            {bgc.mode === "solid" && (
               <div className="field" style={{ marginTop: 14 }}>
-                <ColorField label="Zemin rengi" value={config.background.color1} onChange={(v) => setBg({ color1: v })} />
+                <ColorField label="Zemin rengi" value={bgc.color1} onChange={(v) => setBg({ color1: v })} />
               </div>
             )}
 
-            {config.background.mode === "gradient" && (
+            {bgc.mode === "gradient" && (
               <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 10 }}>
-                <ColorField label="Başlangıç" value={config.background.color1} onChange={(v) => setBg({ color1: v })} />
-                <ColorField label="Bitiş" value={config.background.color2} onChange={(v) => setBg({ color2: v })} />
+                <ColorField label="Başlangıç" value={bgc.color1} onChange={(v) => setBg({ color1: v })} />
+                <ColorField label="Bitiş" value={bgc.color2} onChange={(v) => setBg({ color2: v })} />
                 <div className="field" style={{ margin: 0 }}>
                   <label>
-                    Açı · <b>{config.background.angle}°</b>
+                    Açı · <b>{bgc.angle}°</b>
                   </label>
-                  <input type="range" min={0} max={360} step={1} value={config.background.angle} onChange={(e) => setBg({ angle: Number(e.target.value) })} />
+                  <input type="range" min={0} max={360} step={1} value={bgc.angle} onChange={(e) => setBg({ angle: Number(e.target.value) })} />
                 </div>
               </div>
             )}
 
-            {config.background.mode === "image" && (
+            {bgc.mode === "image" && (
               <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 12 }}>
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                   <button className="btn btn-sm" onClick={() => bgFileRef.current?.click()}>
-                    {config.background.image ? "Görseli değiştir" : "Görsel yükle"}
+                    {bgc.image ? "Görseli değiştir" : "Görsel yükle"}
                   </button>
-                  {config.background.image && (
+                  {bgc.image && (
                     <button className="btn btn-sm btn-ghost" onClick={() => setBg({ image: undefined })}>
                       Kaldır
                     </button>
@@ -437,34 +454,40 @@ export function StepStyle({
                 <div className="field" style={{ margin: 0 }}>
                   <label>Oturma</label>
                   <div className="seg">
-                    <button className={config.background.imageFit === "cover" ? "on" : ""} onClick={() => setBg({ imageFit: "cover" })}>
+                    <button className={bgc.imageFit === "cover" ? "on" : ""} onClick={() => setBg({ imageFit: "cover" })}>
                       Doldur
                     </button>
-                    <button className={config.background.imageFit === "contain" ? "on" : ""} onClick={() => setBg({ imageFit: "contain" })}>
+                    <button className={bgc.imageFit === "contain" ? "on" : ""} onClick={() => setBg({ imageFit: "contain" })}>
                       Sığdır
                     </button>
                   </div>
                 </div>
                 <div className="field" style={{ margin: 0 }}>
                   <label>
-                    Karartma perdesi · <b>{Math.round(config.background.scrim * 100)}%</b> <span className="hint">(metin okunaklılığı)</span>
+                    Karartma perdesi · <b>{Math.round(bgc.scrim * 100)}%</b> <span className="hint">(metin okunaklılığı)</span>
                   </label>
-                  <input type="range" min={0} max={0.8} step={0.02} value={config.background.scrim} onChange={(e) => setBg({ scrim: Number(e.target.value) })} />
+                  <input type="range" min={0} max={0.8} step={0.02} value={bgc.scrim} onChange={(e) => setBg({ scrim: Number(e.target.value) })} />
                 </div>
               </div>
             )}
 
-            {config.background.mode !== "theme" && (
+            {bgc.mode !== "theme" && (
               <div className="field" style={{ marginTop: 14, marginBottom: 0 }}>
                 <label>Metin rengi</label>
                 <div className="seg">
                   {(["auto", "dark", "light"] as const).map((k) => (
-                    <button key={k} className={config.background.ink === k ? "on" : ""} onClick={() => setBg({ ink: k })}>
+                    <button key={k} className={bgc.ink === k ? "on" : ""} onClick={() => setBg({ ink: k })}>
                       {k === "auto" ? "Otomatik" : k === "dark" ? "Koyu" : "Açık"}
                     </button>
                   ))}
                 </div>
               </div>
+            )}
+
+            {!isFG && slides.length > 1 && (
+              <button className="btn btn-sm btn-ghost" style={{ marginTop: 14, width: "100%", justifyContent: "center" }} onClick={applyThemeBgToAll}>
+                Tema & arka planı tüm ekranlara uygula
+              </button>
             )}
           </div>
 
@@ -515,6 +538,16 @@ export function StepStyle({
         {/* Orta: sayfa seçimi · ilerleme · tuval */}
         <div style={{ display: "flex", flexDirection: "column", gap: 14, minWidth: 0 }}>
           <div className="actionbar" style={{ marginBottom: 0 }}>
+            {!isFG && (
+              <div className="seg">
+                <button onClick={() => goSlide(-1)} disabled={slideIdx <= 0} title="Önceki ekran">
+                  ‹
+                </button>
+                <button onClick={() => goSlide(1)} disabled={slideIdx < 0 || slideIdx >= slides.length - 1} title="Sonraki ekran">
+                  ›
+                </button>
+              </div>
+            )}
             {!isFG && <ScreenMenu slides={slides} setSlides={setSlides} config={config} activeId={previewSlide?.id ?? null} setActiveId={setActiveSlideId} />}
             <div className="seg">
               {previewDevices.map((d) => (

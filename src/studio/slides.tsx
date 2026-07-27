@@ -338,9 +338,11 @@ export function SlideView({ slide, device, config }: { slide: SlideSpec; device:
   const cW = dev.designW;
   const cH = dev.designH;
   const Frame = dev.Frame;
-  const bgOverride = resolveBackground(config.background);
-  let s = surfaceOf(config.theme, slide.tone, config.accent);
-  if (bgOverride && config.background.ink !== "auto") s = applyInk(s, config.background.ink);
+  const theme = slide.theme ?? config.theme;
+  const bgSource = slide.background ?? config.background;
+  const bgOverride = resolveBackground(bgSource);
+  let s = surfaceOf(theme, slide.tone, config.accent);
+  if (bgOverride && bgSource.ink !== "auto") s = applyInk(s, bgSource.ink);
   const font = fontStack(config.font);
   const floats = (slide as SlideSpec & { floats?: FloatSpec[] }).floats ?? [];
   const showFloats = config.floats && floats.length > 0;
