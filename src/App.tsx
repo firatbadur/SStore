@@ -62,7 +62,9 @@ function buildItems(slides: BuiltinSlide[], config: StyleConfig, projectName: st
 
 export default function App() {
   const [phase, setPhase] = useState<Phase>("projects");
-  const [projects, setProjects] = useState<Project[]>(() => loadProjects());
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loaded, setLoaded] = useState(false);
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("saved");
   const [activeId, setActiveId] = useState<string | null>(null);
 
   const [results, setResults] = useState<GenResult[]>([]);
@@ -83,10 +85,31 @@ export default function App() {
   const items = useMemo(() => buildItems(slides, config, active?.name ?? ""), [slides, config, active?.name]);
   const stageMounted = phase === "generating" || phase === "result";
 
-  // Projeleri localStorage'a yaz (debounce — sürükleme sırasında spam olmasın)
+  // Projeleri IndexedDB'den yükle (async)
   useEffect(() => {
-    const t = setTimeout(() => saveProjects(projects), 400);
+    loadProjects().then((p) => {
+      setProjects(p);
+      setLoaded(true);
+    });
+  }, []);
+
+  // Değişiklikleri otomatik kaydet (debounce) + durum göster
+  useEffect(() => {
+    if (!loaded) return;
+    setSaveState("saving");
+    const t = setTimeout(() => {
+      saveProjects(projects)
+        .then(() => setSaveState("saved"))
+        .catch(() => setSaveState("idle"));
+    }, 600);
     return () => clearTimeout(t);
+  }, [projects, loaded]);
+
+  const saveNow = useCallback(() => {
+    setSaveState("saving");
+    saveProjects(projects)
+      .then(() => setSaveState("saved"))
+      .catch(() => setSaveState("idle"));
   }, [projects]);
 
   // Gömülü görselleri baştan data-URI'ye çevir (export güvenilirliği)
@@ -267,16 +290,21 @@ export default function App() {
       </header>
 
       <main className="main">
-        {phase === "projects" && (
-          <ProjectsHome
-            projects={projects}
-            onOpen={openProject}
-            onNew={startNewProject}
-            onRename={renameProject}
-            onDuplicate={duplicate}
-            onDelete={removeProject}
-          />
-        )}
+        {phase === "projects" &&
+          (loaded ? (
+            <ProjectsHome
+              projects={projects}
+              onOpen={openProject}
+              onNew={startNewProject}
+              onRename={renameProject}
+              onDuplicate={duplicate}
+              onDelete={removeProject}
+            />
+          ) : (
+            <div className="progress-wrap">
+              <div className="spinner" />
+            </div>
+          ))}
 
         {phase === "design" && active && (
           <StepStyle
@@ -286,6 +314,8 @@ export default function App() {
             setConfig={setConfig}
             slides={slides}
             setSlides={setSlides}
+            saveState={saveState}
+            onSaveNow={saveNow}
             onBack={() => setPhase("projects")}
             onGenerate={startGenerateAll}
           />

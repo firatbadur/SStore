@@ -7,6 +7,7 @@
 import type { StyleConfig } from "./types";
 import type { BuiltinSlide } from "./presets";
 import { BUILTIN_SLIDES, DEFAULT_CONFIG, APP_NAME, APP_TAGLINE } from "./presets";
+import { idbGet, idbSet } from "./store";
 
 export interface Project {
   id: string;
@@ -62,24 +63,41 @@ export function duplicateProject(p: Project): Project {
   };
 }
 
-export function loadProjects(): Project[] {
+export async function loadProjects(): Promise<Project[]> {
+  // 1) IndexedDB (asıl depo — büyük kota)
+  try {
+    const arr = await idbGet<Project[]>(KEY);
+    if (Array.isArray(arr) && arr.length) return arr.map(migrate);
+  } catch {
+    /* IDB yok/erişilemez */
+  }
+  // 2) Eski localStorage verisini göç ettir (varsa)
   try {
     const raw = localStorage.getItem(KEY);
     if (raw) {
       const arr = JSON.parse(raw) as Project[];
-      if (Array.isArray(arr) && arr.length) return arr.map(migrate);
+      if (Array.isArray(arr) && arr.length) {
+        const migrated = arr.map(migrate);
+        idbSet(KEY, migrated).catch(() => {});
+        return migrated;
+      }
     }
   } catch {
-    /* bozuk/erişilemez — varsayılana düş */
+    /* yoksay */
   }
   return [defaultProject()];
 }
 
-export function saveProjects(projects: Project[]): void {
+export async function saveProjects(projects: Project[]): Promise<void> {
   try {
-    localStorage.setItem(KEY, JSON.stringify(projects));
+    await idbSet(KEY, projects);
   } catch {
-    /* kota aşımı vb. — sessizce geç (oturum içi bellek yine çalışır) */
+    // IDB başarısızsa localStorage'a dene (küçük projeler için)
+    try {
+      localStorage.setItem(KEY, JSON.stringify(projects));
+    } catch {
+      /* kota aşımı — sessizce geç */
+    }
   }
 }
 

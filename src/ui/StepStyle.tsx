@@ -5,7 +5,7 @@ import type { BuiltinSlide } from "../studio/presets";
 import { FeatureGraphicView, fgResolve } from "../studio/slides";
 import { SlidePreview } from "./SlidePreview";
 import { OverlayEditor, newCard, newImage, newPill, newText, readImageFile } from "./OverlayEditor";
-import { ScreenStrip } from "./ScreenStrip";
+import { ScreenMenu } from "./ScreenMenu";
 import { THEMES, FONTS, ACCENTS } from "../studio/theme";
 import { DEVICES } from "../studio/devices";
 
@@ -186,6 +186,8 @@ export function StepStyle({
   setConfig,
   slides,
   setSlides,
+  saveState,
+  onSaveNow,
   onBack,
   onGenerate,
 }: {
@@ -194,6 +196,8 @@ export function StepStyle({
   setConfig: (c: StyleConfig) => void;
   slides: BuiltinSlide[];
   setSlides: (s: BuiltinSlide[]) => void;
+  saveState: "idle" | "saving" | "saved";
+  onSaveNow: () => void;
   onBack: () => void;
   onGenerate: () => void;
 }) {
@@ -283,8 +287,6 @@ export function StepStyle({
           Ekran görüntülerini şeritten yönet, birini seçip tasarla. Tema, arka plan, font, konum ve yüzen öğeler solda; sayfa metni ve seçili öğe sağda.
         </p>
       </div>
-
-      <ScreenStrip slides={slides} setSlides={setSlides} config={config} activeId={previewSlide?.id ?? null} setActiveId={setActiveSlideId} />
 
       <div className="split3">
         {/* Sol: kontroller */}
@@ -460,7 +462,7 @@ export function StepStyle({
         {/* Orta: sayfa seçimi · ilerleme · tuval */}
         <div style={{ display: "flex", flexDirection: "column", gap: 14, minWidth: 0 }}>
           <div className="actionbar" style={{ marginBottom: 0 }}>
-            {!isFG && previewSlide && <span className="pill-note">{previewSlide.name}</span>}
+            {!isFG && <ScreenMenu slides={slides} setSlides={setSlides} config={config} activeId={previewSlide?.id ?? null} setActiveId={setActiveSlideId} />}
             <div className="seg">
               {previewDevices.map((d) => (
                 <button key={d} className={pdev === d ? "on" : ""} onClick={() => setPreviewDevice(d)}>
@@ -469,6 +471,9 @@ export function StepStyle({
               ))}
             </div>
             <div className="grow" />
+            <button className={`savebtn ${saveState}`} onClick={onSaveNow} title="Kaydet">
+              {saveState === "saving" ? "Kaydediliyor…" : saveState === "saved" ? "✓ Kaydedildi" : "Kaydet"}
+            </button>
             <button className="btn btn-ghost" onClick={onBack}>
               ← Projeler
             </button>

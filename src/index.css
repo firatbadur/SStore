@@ -159,9 +159,9 @@ h4 {
 .main {
   flex: 1;
   width: 100%;
-  max-width: 1500px;
+  max-width: 1840px;
   margin: 0 auto;
-  padding: 26px 22px 80px;
+  padding: 24px 16px 80px;
 }
 .page-head {
   margin-bottom: 22px;
@@ -890,77 +890,7 @@ input[type="range"] {
   color: var(--ink-3);
 }
 
-/* ─── Ekran şeridi (tasarım sayfası) ─── */
-.strip {
-  display: flex;
-  gap: 12px;
-  overflow-x: auto;
-  padding: 12px;
-  background: #fff;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-sm);
-  margin-bottom: 20px;
-}
-.strip-item {
-  flex: 0 0 auto;
-  width: 128px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  overflow: hidden;
-  background: #fff;
-  transition: border-color 0.15s, box-shadow 0.15s, opacity 0.15s;
-}
-.strip-item.active {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--accent-soft);
-}
-.strip-item.off {
-  opacity: 0.5;
-}
-.strip-item.dragover {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--accent-soft);
-  transform: translateY(-2px);
-}
-.strip-thumb {
-  position: relative;
-  height: 168px;
-  overflow: hidden;
-  background: #f1f3f6;
-  border-bottom: 1px solid var(--line-2);
-}
-.strip-hit {
-  position: absolute;
-  inset: 0;
-  z-index: 5;
-  cursor: grab;
-}
-.strip-hit:active {
-  cursor: grabbing;
-}
-.strip-idx {
-  position: absolute;
-  top: 5px;
-  left: 5px;
-  z-index: 6;
-  pointer-events: none;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: rgba(11, 16, 26, 0.6);
-  color: #fff;
-  font-size: 10px;
-  font-weight: 700;
-  display: grid;
-  place-items: center;
-}
-.strip-bar {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  padding: 6px;
-}
+/* ─── Küçük ikon butonlar (menü) ─── */
 .iconbtn.xs {
   width: 23px;
   height: 23px;
@@ -972,26 +902,164 @@ input[type="range"] {
   border-color: #bfe3d3;
   background: #f0faf5;
 }
-.strip-add {
-  flex: 0 0 auto;
-  width: 128px;
-  border: 2px dashed var(--line);
-  border-radius: 10px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  cursor: pointer;
+
+/* ─── Kayıt durumu / manuel kaydet ─── */
+.savebtn {
+  border: 1px solid var(--line);
+  background: #fff;
   color: var(--ink-2);
   font-weight: 600;
   font-size: 12.5px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
   transition: all 0.15s;
 }
-.strip-add:hover {
-  border-color: var(--accent);
+.savebtn:hover {
+  border-color: #d3d8df;
+}
+.savebtn.saved {
+  color: var(--ok);
+  border-color: #bfe3d3;
+  background: #f0faf5;
+}
+.savebtn.saving {
+  color: var(--ink-3);
+}
+
+/* ─── Ekran açılır menüsü (tasarım araç çubuğu) ─── */
+.screenmenu {
+  position: relative;
+}
+.sm-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px 4px 4px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--ink);
+  max-width: 240px;
+}
+.sm-trigger:hover {
+  border-color: #d3d8df;
+}
+.sm-trigger-thumb {
+  width: 26px;
+  height: 34px;
+  border-radius: 5px;
+  overflow: hidden;
+  background: #f1f3f6;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+}
+.sm-trigger-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sm-caret {
+  color: var(--ink-3);
+  font-size: 11px;
+}
+.sm-pop {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 60;
+  width: 320px;
+  max-width: 84vw;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  padding: 10px;
+}
+.sm-pop-head {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 12.5px;
+  color: var(--ink-2);
+  padding: 2px 4px 8px;
+}
+.sm-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 52vh;
+  overflow-y: auto;
+}
+.sm-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+}
+.sm-row:hover {
+  background: var(--line-2);
+}
+.sm-row.active {
   background: var(--accent-soft);
-  color: var(--accent);
+  border-color: #d5e5f6;
+}
+.sm-row.off {
+  opacity: 0.5;
+}
+.sm-row.dragover {
+  border-color: var(--accent);
+}
+.sm-handle {
+  cursor: grab;
+  color: var(--ink-3);
+  font-size: 14px;
+  padding: 0 2px;
+  user-select: none;
+}
+.sm-handle:active {
+  cursor: grabbing;
+}
+.sm-thumb {
+  width: 34px;
+  height: 44px;
+  border-radius: 5px;
+  overflow: hidden;
+  background: #f1f3f6;
+  flex-shrink: 0;
+  cursor: pointer;
+  border: 1px solid var(--line-2);
+}
+.sm-name {
+  flex: 1;
+  text-align: left;
+  border: none;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  font-size: 12.5px;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  padding: 0;
+}
+.sm-empty {
+  color: var(--ink-3);
+  font-size: 12px;
+  padding: 10px;
+  text-align: center;
+}
+.sm-add {
+  width: 100%;
+  justify-content: center;
+  margin-top: 8px;
 }
 
 /* ─── Boş tuval durumu ─── */
